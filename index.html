@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book a Ride — Church Transportation Ministry</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #B8962E;
+    --gold-light: #D4B44A;
+    --gold-pale: #F5EDD4;
+    --gold-glow: rgba(184,150,46,0.12);
+    --navy: #1B2040;
+    --navy-deep: #111428;
+    --navy-mid: #2A3060;
+    --cream: #FDFAF3;
+    --cream-dark: #F4EFE3;
+    --warm-white: #FEFCF8;
+    --text-dark: #1B2040;
+    --text-mid: #555B78;
+    --text-light: #8D92AA;
+    --border: #E6E1D5;
+    --border-focus: var(--gold);
+    --red: #C0392B;
+    --red-bg: #FDF0EE;
+    --green: #27864A;
+    --green-bg: #EEFBF2;
+    --radius: 10px;
+    --radius-lg: 18px;
+    --shadow-soft: 0 2px 12px rgba(27,32,64,0.06);
+    --shadow-card: 0 8px 40px rgba(27,32,64,0.08), 0 1px 3px rgba(27,32,64,0.04);
+    --shadow-gold: 0 4px 24px rgba(184,150,46,0.2);
+    --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--cream);
+    color: var(--text-dark);
+    min-height: 100vh;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse at 20% 0%, var(--gold-glow) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, rgba(27,32,64,0.03) 0%, transparent 50%);
+  }
+
+  /* ═══ Header ═══ */
+  .header {
+    background: linear-gradient(160deg, var(--navy-deep) 0%, var(--navy) 60%, var(--navy-mid) 100%);
+    position: relative; overflow: hidden;
+  }
+  .header::after {
+    content: ''; position: absolute; inset: 0;
+    background: repeating-linear-gradient(120deg, transparent, transparent 80px, rgba(184,150,46,0.02) 80px, rgba(184,150,46,0.02) 81px);
+  }
+  .header-content {
+    max-width: 700px; margin: 0 auto;
+    padding: 52px 24px 48px;
+    text-align: center; position: relative; z-index: 1;
+  }
+  .church-cross {
+    width: 48px; height: 48px; margin: 0 auto 18px;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    border-radius: 50%; box-shadow: var(--shadow-gold);
+    animation: headerIn 0.7s ease both;
+  }
+  .church-cross svg { width: 24px; height: 24px; }
+  .header h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(30px, 5.5vw, 44px);
+    font-weight: 600; color: #fff;
+    letter-spacing: -0.02em; line-height: 1.15;
+    margin-bottom: 10px;
+    animation: headerIn 0.7s ease 0.1s both;
+  }
+  .header-subtitle {
+    font-size: 14px; font-weight: 400;
+    color: var(--gold-light); letter-spacing: 0.06em;
+    text-transform: uppercase;
+    animation: headerIn 0.7s ease 0.2s both;
+  }
+  .header-rule {
+    width: 40px; height: 2px;
+    background: var(--gold); border-radius: 1px;
+    margin: 18px auto 0;
+    animation: headerIn 0.7s ease 0.3s both;
+  }
+
+  /* ═══ Main ═══ */
+  .main {
+    max-width: 640px; margin: -16px auto 64px;
+    padding: 0 16px; position: relative; z-index: 1;
+  }
+
+  .card {
+    background: var(--warm-white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    animation: cardIn 0.8s ease 0.25s both;
+  }
+  .card-inner { padding: 36px 34px 42px; }
+  @media (max-width: 520px) { .card-inner { padding: 28px 20px 34px; } }
+
+  /* ═══ Notice Banner ═══ */
+  .notice {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 16px 18px;
+    background: var(--gold-pale);
+    border-left: 3px solid var(--gold);
+    border-radius: var(--radius);
+    margin-bottom: 30px;
+  }
+  .notice svg { flex-shrink: 0; margin-top: 2px; }
+  .notice p { font-size: 13.5px; color: var(--text-mid); line-height: 1.55; }
+  .notice strong { color: var(--text-dark); font-weight: 600; }
+
+  /* ═══ Section Labels ═══ */
+  .section-label {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 21px; font-weight: 600;
+    color: var(--navy);
+    margin: 32px 0 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-label:first-child { margin-top: 0; }
+  .section-label .num {
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px; font-weight: 600;
+    color: var(--gold);
+    background: var(--gold-pale);
+    width: 24px; height: 24px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+  }
+
+  /* ═══ Form Fields ═══ */
+  .field { margin-bottom: 20px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 520px) { .field-row { grid-template-columns: 1fr; } }
+
+  label {
+    display: block; font-size: 13px; font-weight: 600;
+    color: var(--text-dark); margin-bottom: 6px; letter-spacing: 0.01em;
+  }
+  label .req { color: var(--red); margin-left: 2px; }
+
+  input[type="text"], input[type="email"], input[type="tel"],
+  input[type="date"], input[type="time"], input[type="number"],
+  select, textarea {
+    width: 100%; padding: 12px 14px;
+    font-family: 'Outfit', sans-serif; font-size: 14.5px;
+    color: var(--text-dark); background: var(--cream);
+    border: 1.5px solid var(--border); border-radius: var(--radius);
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--gold-glow);
+    background: var(--warm-white);
+  }
+  input::placeholder, textarea::placeholder { color: var(--text-light); font-weight: 300; }
+  textarea { resize: vertical; min-height: 80px; }
+  select {
+    cursor: pointer; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238D92AA' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center;
+    padding-right: 36px;
+  }
+
+  /* ═══ Address Status ═══ */
+  .address-status {
+    display: none; align-items: center; gap: 10px;
+    padding: 14px 16px; border-radius: var(--radius);
+    margin-top: 12px; font-size: 13.5px; font-weight: 500;
+    animation: fadeIn 0.35s ease;
+  }
+  .address-status.checking { display: flex; background: var(--gold-pale); color: var(--text-mid); }
+  .address-status.success { display: flex; background: var(--green-bg); color: var(--green); border: 1px solid rgba(39,134,74,0.15); }
+  .address-status.error { display: flex; background: var(--red-bg); color: var(--red); border: 1px solid rgba(192,57,43,0.15); }
+  .address-status svg { flex-shrink: 0; }
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border); border-top-color: var(--gold);
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+  }
+
+  /* ═══ Ride Toggle ═══ */
+  .ride-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ride-toggle-btn {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; padding: 18px 12px;
+    background: var(--cream); border: 2px solid var(--border);
+    border-radius: var(--radius); cursor: pointer;
+    transition: all var(--transition); font-family: 'Outfit', sans-serif;
+  }
+  .ride-toggle-btn:hover { border-color: var(--gold-light); background: var(--gold-pale); }
+  .ride-toggle-btn.active {
+    border-color: var(--gold); background: var(--gold-pale);
+    box-shadow: 0 0 0 3px var(--gold-glow);
+  }
+  .ride-toggle-btn svg { width: 28px; height: 28px; }
+  .ride-toggle-btn span { font-size: 13px; font-weight: 600; color: var(--text-dark); }
+  .ride-toggle-btn .sub { font-size: 11.5px; font-weight: 400; color: var(--text-light); }
+  .ride-toggle-btn input { display: none; }
+
+  /* ═══ Buttons ═══ */
+  .submit-area { margin-top: 32px; }
+  .btn-submit {
+    width: 100%; padding: 16px;
+    font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600;
+    color: var(--navy-deep);
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    border: none; border-radius: var(--radius);
+    cursor: pointer; letter-spacing: 0.02em;
+    box-shadow: var(--shadow-gold);
+    transition: all var(--transition);
+    position: relative; overflow: hidden;
+  }
+  .btn-submit:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(184,150,46,0.3); }
+  .btn-submit:active:not(:disabled) { transform: translateY(0); }
+  .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-submit .btn-loader {
+    display: none; width: 20px; height: 20px;
+    border: 2.5px solid rgba(27,32,64,0.2); border-top-color: var(--navy-deep);
+    border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto;
+  }
+  .btn-submit.loading .btn-text { display: none; }
+  .btn-submit.loading .btn-loader { display: block; }
+
+  /* ═══ Result Screens ═══ */
+  .result-screen { display: none; text-align: center; padding: 48px 24px 40px; }
+  .result-screen.show { display: block; animation: fadeIn 0.5s ease; }
+  .result-icon {
+    width: 64px; height: 64px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px;
+  }
+  .result-icon.success-icon { background: var(--green-bg); }
+  .result-icon.error-icon { background: var(--red-bg); }
+  .result-screen h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px; font-weight: 600; margin-bottom: 10px;
+  }
+  .result-screen p { font-size: 14.5px; color: var(--text-mid); max-width: 380px; margin: 0 auto 24px; }
+  .btn-secondary {
+    display: inline-block; padding: 12px 28px;
+    font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600;
+    color: var(--navy); background: var(--cream-dark);
+    border: 1.5px solid var(--border); border-radius: var(--radius);
+    cursor: pointer; transition: all var(--transition);
+  }
+  .btn-secondary:hover { border-color: var(--gold); background: var(--gold-pale); }
+
+  /* ═══ Setup Screen ═══ */
+  #setupScreen { text-align: center; padding: 48px 24px; }
+  #setupScreen h2 { font-family: 'Cormorant Garamond', serif; font-size: 24px; margin-bottom: 12px; }
+  #setupScreen p { color: var(--text-mid); margin-bottom: 24px; font-size: 14px; }
+  .setup-log {
+    text-align: left; background: var(--cream); border-radius: var(--radius);
+    padding: 16px 18px; max-height: 240px; overflow-y: auto;
+    font-size: 13px; color: var(--text-mid); margin-top: 20px;
+  }
+  .setup-log .log-item { padding: 4px 0; display: flex; align-items: center; gap: 8px; }
+  .setup-log .log-item.ok { color: var(--green); }
+  .setup-log .log-item.fail { color: var(--red); }
+  .setup-log .log-item.working { color: var(--gold); }
+
+  .footer { text-align: center; padding: 20px; font-size: 12px; color: var(--text-light); }
+  .footer a { color: var(--gold); text-decoration: none; }
+
+  @keyframes headerIn { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-content">
+    <div class="church-cross">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#111428" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v18M6 8h12"/></svg>
+    </div>
+    <h1>Book a Ride</h1>
+    <p class="header-subtitle">Church Transportation Ministry</p>
+    <div class="header-rule"></div>
+  </div>
+</header>
+
+<main class="main">
+  <div class="card">
+
+    <!-- SETUP SCREEN -->
+    <div id="setupScreen" style="display:none;">
+      <div class="church-cross" style="margin:0 auto 18px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#111428" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v18M6 8h12"/></svg>
+      </div>
+      <h2>Setting Up Your Workspace</h2>
+      <p>Creating the "Book a Ride" space in your ClickUp workspace&hellip;</p>
+      <div class="spinner" style="margin:0 auto;"></div>
+      <div class="setup-log" id="setupLog"></div>
+    </div>
+
+    <!-- FORM -->
+    <div id="formContainer" class="card-inner">
+
+      <div class="notice">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <circle cx="10" cy="10" r="9" stroke="#B8962E" stroke-width="1.5"/>
+          <path d="M10 6v4M10 13h.01" stroke="#B8962E" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <p>Rides are available for church members living within <strong>15 miles</strong> of 10001 Aerospace Road, Lanham, MD 20706. Your address will be verified when you enter it below.</p>
+      </div>
+
+      <form id="rideForm" novalidate>
+
+        <div class="section-label"><span class="num">1</span> Personal Information</div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="firstName">First Name <span class="req">*</span></label>
+            <input type="text" id="firstName" placeholder="John" required>
+          </div>
+          <div class="field">
+            <label for="lastName">Last Name <span class="req">*</span></label>
+            <input type="text" id="lastName" placeholder="Smith" required>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="email">Email <span class="req">*</span></label>
+            <input type="email" id="email" placeholder="john@example.com" required>
+          </div>
+          <div class="field">
+            <label for="phone">Phone <span class="req">*</span></label>
+            <input type="tel" id="phone" placeholder="(301) 555-1234" required>
+          </div>
+        </div>
+
+        <div class="section-label"><span class="num">2</span> Your Address</div>
+
+        <div class="field">
+          <label for="street">Street Address <span class="req">*</span></label>
+          <input type="text" id="street" placeholder="1234 Main Street" required>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="city">City <span class="req">*</span></label>
+            <input type="text" id="city" placeholder="Lanham" required>
+          </div>
+          <div class="field">
+            <label for="state">State <span class="req">*</span></label>
+            <select id="state" required>
+              <option value="">Select state</option>
+              <option value="MD" selected>Maryland</option>
+              <option value="DC">Washington D.C.</option>
+              <option value="VA">Virginia</option>
+              <option value="PA">Pennsylvania</option>
+              <option value="DE">Delaware</option>
+              <option value="WV">West Virginia</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="zip">ZIP Code <span class="req">*</span></label>
+            <input type="text" id="zip" placeholder="20706" maxlength="5" required>
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <button type="button" id="verifyBtn" class="btn-submit" style="padding:12px; font-size:13.5px; margin-top:0;">
+              <span class="btn-text">Verify My Address</span>
+              <span class="btn-loader"></span>
+            </button>
+          </div>
+        </div>
+
+        <div class="address-status" id="addressStatus"></div>
+
+        <!-- RIDE DETAILS (hidden until verified) -->
+        <div id="rideSection" style="display:none;">
+
+          <div class="section-label"><span class="num">3</span> Ride Details</div>
+
+          <div class="field">
+            <label>Ride Type <span class="req">*</span></label>
+            <div class="ride-toggle">
+              <label class="ride-toggle-btn active" data-value="to_church">
+                <input type="radio" name="rideType" value="to_church" checked>
+                <svg viewBox="0 0 32 32" fill="none" stroke="#1B2040" stroke-width="1.5">
+                  <rect x="3" y="16" width="12" height="10" rx="2"/><path d="M9 12l-6 4h12l-6-4z"/><path d="M9 8v4"/>
+                  <path d="M18 23h8M26 23l-3-3M26 23l-3 3"/>
+                </svg>
+                <span>To Church</span>
+                <span class="sub">Pickup from home</span>
+              </label>
+              <label class="ride-toggle-btn" data-value="from_church">
+                <input type="radio" name="rideType" value="from_church">
+                <svg viewBox="0 0 32 32" fill="none" stroke="#1B2040" stroke-width="1.5">
+                  <rect x="17" y="16" width="12" height="10" rx="2"/><path d="M23 12l-6 4h12l-6-4z"/><path d="M23 8v4"/>
+                  <path d="M14 23H6M6 23l3-3M6 23l3 3"/>
+                </svg>
+                <span>From Church</span>
+                <span class="sub">Drop-off to home</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="rideDate">Preferred Date <span class="req">*</span></label>
+              <input type="date" id="rideDate" required>
+            </div>
+            <div class="field">
+              <label for="rideTime">Preferred Time <span class="req">*</span></label>
+              <input type="time" id="rideTime" required>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="passengers">Passengers <span class="req">*</span></label>
+              <select id="passengers" required>
+                <option value="1">1 passenger</option>
+                <option value="2">2 passengers</option>
+                <option value="3">3 passengers</option>
+                <option value="4">4 passengers</option>
+                <option value="5">5+ passengers</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="mobility">Mobility Needs</label>
+              <select id="mobility">
+                <option value="none">No special needs</option>
+                <option value="wheelchair">Wheelchair accessible</option>
+                <option value="walker">Walker / cane assistance</option>
+                <option value="other">Other (describe below)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="notes">Additional Notes</label>
+            <textarea id="notes" placeholder="Any special instructions, recurring ride needs, or additional details..."></textarea>
+          </div>
+
+          <div class="submit-area">
+            <button type="submit" class="btn-submit" id="submitBtn">
+              <span class="btn-text">Submit Ride Request</span>
+              <span class="btn-loader"></span>
+            </button>
+          </div>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- SUCCESS -->
+    <div id="successScreen" class="result-screen">
+      <div class="result-icon success-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#27864A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
+      <h2>Ride Requested!</h2>
+      <p>Your ride request has been submitted successfully. A member of our transportation ministry will reach out to confirm your ride.</p>
+      <p id="taskLink" style="font-size:12px; color:var(--text-light);"></p>
+      <button class="btn-secondary" onclick="resetForm()">Submit Another Request</button>
+    </div>
+
+    <!-- DENIED -->
+    <div id="deniedScreen" class="result-screen">
+      <div class="result-icon error-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+      </div>
+      <h2>Outside Service Area</h2>
+      <p id="deniedMsg">Unfortunately, your address is outside our 15-mile service radius. Please contact the church office for alternative arrangements.</p>
+      <button class="btn-secondary" onclick="resetForm()">Try Another Address</button>
+    </div>
+
+  </div>
+
+  <div class="footer">Church Transportation Ministry &middot; 10001 Aerospace Road, Lanham, MD 20706</div>
+</main>
+
+<script>
+// ═════════════════════════════════════════════════════
+// CONFIGURATION
+// ═════════════════════════════════════════════════════
+const CONFIG = {
+  CLICKUP_TOKEN: 'pk_132235797_UK8KA59NCZNGTGBPCN7V30XPN56V68SR',
+  TEAM_ID: '90131008833',
+  API_BASE: 'https://api.clickup.com/api/v2',
+  CHURCH_LAT: 38.9847,
+  CHURCH_LNG: -76.8545,
+  MAX_RADIUS_MILES: 15,
+};
+
+let LIST_ID = localStorage.getItem('bookARide_listId') || null;
+
+// ═════════════════════════════════════════════════════
+// CLICKUP API
+// ═════════════════════════════════════════════════════
+async function clickupFetch(endpoint, options = {}) {
+  const res = await fetch(`${CONFIG.API_BASE}${endpoint}`, {
+    ...options,
+    headers: {
+      'Authorization': CONFIG.CLICKUP_TOKEN,
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    const errBody = await res.text();
+    throw new Error(`ClickUp API ${res.status}: ${errBody}`);
+  }
+  return res.json();
+}
+
+// ═════════════════════════════════════════════════════
+// WORKSPACE SETUP
+// ═════════════════════════════════════════════════════
+function logSetup(msg, status = 'working') {
+  const log = document.getElementById('setupLog');
+  const item = document.createElement('div');
+  item.className = `log-item ${status}`;
+  const icon = status === 'ok' ? '✓' : status === 'fail' ? '✗' : '⟳';
+  item.textContent = `${icon}  ${msg}`;
+  log.appendChild(item);
+  log.scrollTop = log.scrollHeight;
+}
+
+async function setupWorkspace() {
+  const setupScreen = document.getElementById('setupScreen');
+  const formContainer = document.getElementById('formContainer');
+
+  if (LIST_ID) {
+    try {
+      await clickupFetch(`/list/${LIST_ID}`);
+      setupScreen.style.display = 'none';
+      formContainer.style.display = '';
+      return;
+    } catch {
+      LIST_ID = null;
+      localStorage.removeItem('bookARide_listId');
+    }
+  }
+
+  setupScreen.style.display = '';
+  formContainer.style.display = 'none';
+
+  try {
+    logSetup('Creating "Book a Ride" space...');
+    const space = await clickupFetch(`/team/${CONFIG.TEAM_ID}/space`, {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'Book a Ride',
+        multiple_assignees: true,
+        features: {
+          due_dates: { enabled: true, start_date: true },
+          priorities: { enabled: true },
+          tags: { enabled: true },
+          custom_fields: { enabled: true },
+        },
+      }),
+    });
+    logSetup(`Space created: "${space.name}"`, 'ok');
+
+    logSetup('Creating "Transportation Requests" folder...');
+    const folder = await clickupFetch(`/space/${space.id}/folder`, {
+      method: 'POST',
+      body: JSON.stringify({ name: 'Transportation Requests' }),
+    });
+    logSetup(`Folder created: "${folder.name}"`, 'ok');
+
+    logSetup('Creating "Ride Requests" list...');
+    const list = await clickupFetch(`/folder/${folder.id}/list`, {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'Ride Requests',
+        content: 'Ride requests submitted by church members via the Book a Ride form.',
+      }),
+    });
+    LIST_ID = list.id;
+    localStorage.setItem('bookARide_listId', LIST_ID);
+    logSetup(`List created: "${list.name}" (ID: ${list.id})`, 'ok');
+
+    logSetup('Creating custom fields...');
+    const fields = [
+      { name: 'Phone Number', type: 'phone' },
+      { name: 'Email', type: 'email' },
+      { name: 'Pickup Address', type: 'text' },
+      { name: 'Distance (miles)', type: 'number' },
+      { name: 'Ride Type', type: 'drop_down', type_config: { options: [
+        { name: 'To Church', color: '#4CAF50' },
+        { name: 'From Church', color: '#2196F3' },
+      ]}},
+      { name: 'Passengers', type: 'number' },
+      { name: 'Mobility Needs', type: 'drop_down', type_config: { options: [
+        { name: 'No special needs' },
+        { name: 'Wheelchair accessible', color: '#FF9800' },
+        { name: 'Walker / cane assistance', color: '#FF9800' },
+        { name: 'Other', color: '#9C27B0' },
+      ]}},
+    ];
+
+    for (const field of fields) {
+      try {
+        await clickupFetch(`/list/${LIST_ID}/field`, {
+          method: 'POST',
+          body: JSON.stringify(field),
+        });
+        logSetup(`  Field: "${field.name}"`, 'ok');
+      } catch (err) {
+        logSetup(`  Field "${field.name}" — skipped (may exist)`, 'ok');
+      }
+    }
+
+    logSetup('Workspace setup complete!', 'ok');
+    await new Promise(r => setTimeout(r, 1200));
+    setupScreen.style.display = 'none';
+    formContainer.style.display = '';
+
+  } catch (err) {
+    logSetup(`Error: ${err.message}`, 'fail');
+    logSetup('Check your API token and Team ID, or try refreshing.', 'fail');
+  }
+}
+
+// ═════════════════════════════════════════════════════
+// GEOCODING & DISTANCE
+// ═════════════════════════════════════════════════════
+async function geocodeAddress(address) {
+  const encoded = encodeURIComponent(address);
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q=${encoded}`,
+    { headers: { 'User-Agent': 'ChurchRideBooking/1.0' } }
+  );
+  const data = await res.json();
+  if (!data || data.length === 0) return null;
+  return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), display: data[0].display_name };
+}
+
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 3958.8;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ═════════════════════════════════════════════════════
+// ADDRESS VERIFICATION
+// ═════════════════════════════════════════════════════
+let verifiedAddress = null;
+let calculatedDistance = null;
+
+document.getElementById('verifyBtn').addEventListener('click', async () => {
+  const street = document.getElementById('street').value.trim();
+  const city = document.getElementById('city').value.trim();
+  const state = document.getElementById('state').value;
+  const zip = document.getElementById('zip').value.trim();
+
+  if (!street || !city || !state || !zip) {
+    showAddressStatus('error', 'Please fill in all address fields before verifying.');
+    return;
+  }
+
+  const fullAddress = `${street}, ${city}, ${state} ${zip}`;
+  showAddressStatus('checking', 'Verifying your address...');
+  document.getElementById('verifyBtn').classList.add('loading');
+
+  try {
+    const result = await geocodeAddress(fullAddress);
+    if (!result) {
+      showAddressStatus('error', 'Could not find your address. Please check the details and try again.');
+      document.getElementById('rideSection').style.display = 'none';
+      verifiedAddress = null;
+      return;
+    }
+
+    const distance = haversineDistance(CONFIG.CHURCH_LAT, CONFIG.CHURCH_LNG, result.lat, result.lng);
+    calculatedDistance = Math.round(distance * 10) / 10;
+
+    if (distance <= CONFIG.MAX_RADIUS_MILES) {
+      verifiedAddress = fullAddress;
+      showAddressStatus('success', `Address verified — ${calculatedDistance} miles from church. You're within the service area!`);
+      document.getElementById('rideSection').style.display = '';
+      document.getElementById('rideSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      verifiedAddress = null;
+      showAddressStatus('error', `Your address is ${calculatedDistance} miles from church, which exceeds our 15-mile service radius.`);
+      document.getElementById('rideSection').style.display = 'none';
+      setTimeout(() => {
+        document.getElementById('deniedMsg').textContent =
+          `Your address (${calculatedDistance} miles away) is outside our 15-mile service area. Please contact the church office at 10001 Aerospace Road, Lanham, MD 20706 for alternative transportation arrangements.`;
+        document.getElementById('formContainer').style.display = 'none';
+        document.getElementById('deniedScreen').classList.add('show');
+      }, 1500);
+    }
+  } catch (err) {
+    showAddressStatus('error', 'Verification service unavailable. Please try again shortly.');
+  } finally {
+    document.getElementById('verifyBtn').classList.remove('loading');
+  }
+});
+
+function showAddressStatus(type, message) {
+  const el = document.getElementById('addressStatus');
+  el.className = `address-status ${type}`;
+  let icon = '';
+  if (type === 'checking') icon = '<div class="spinner"></div>';
+  else if (type === 'success') icon = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke="#27864A" stroke-width="1.5"/><path d="M6 10l3 3 5-5" stroke="#27864A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  else if (type === 'error') icon = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke="#C0392B" stroke-width="1.5"/><path d="M13 7l-6 6M7 7l6 6" stroke="#C0392B" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  el.innerHTML = `${icon}<span>${message}</span>`;
+}
+
+// ═════════════════════════════════════════════════════
+// RIDE TOGGLE
+// ═════════════════════════════════════════════════════
+document.querySelectorAll('.ride-toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.ride-toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    btn.querySelector('input').checked = true;
+  });
+});
+
+// Set min date to today
+document.getElementById('rideDate').min = new Date().toISOString().split('T')[0];
+
+// ═════════════════════════════════════════════════════
+// FORM SUBMISSION → CLICKUP TASK
+// ═════════════════════════════════════════════════════
+document.getElementById('rideForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  if (!verifiedAddress) {
+    showAddressStatus('error', 'Please verify your address first.');
+    return;
+  }
+
+  const firstName = document.getElementById('firstName').value.trim();
+  const lastName = document.getElementById('lastName').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const rideType = document.querySelector('input[name="rideType"]:checked').value;
+  const rideDate = document.getElementById('rideDate').value;
+  const rideTime = document.getElementById('rideTime').value;
+  const passengers = document.getElementById('passengers').value;
+  const mobility = document.getElementById('mobility').value;
+  const notes = document.getElementById('notes').value.trim();
+
+  if (!firstName || !lastName || !email || !phone || !rideDate || !rideTime) {
+    alert('Please fill in all required fields.');
+    return;
+  }
+
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.classList.add('loading');
+  submitBtn.disabled = true;
+
+  const rideTypeLabel = rideType === 'to_church' ? 'To Church' : 'From Church';
+  const mobilityLabel = { none:'No special needs', wheelchair:'Wheelchair accessible', walker:'Walker / cane assistance', other:'Other' }[mobility];
+
+  const taskName = `🚗 ${firstName} ${lastName} — ${rideTypeLabel} (${rideDate})`;
+  const taskDesc =
+    `## Ride Request\n\n` +
+    `**Requester:** ${firstName} ${lastName}\n` +
+    `**Email:** ${email}\n` +
+    `**Phone:** ${phone}\n\n` +
+    `**Pickup Address:** ${verifiedAddress}\n` +
+    `**Distance from Church:** ${calculatedDistance} miles\n\n` +
+    `**Ride Type:** ${rideTypeLabel}\n` +
+    `**Date:** ${rideDate}\n` +
+    `**Time:** ${rideTime}\n` +
+    `**Passengers:** ${passengers}\n` +
+    `**Mobility Needs:** ${mobilityLabel}\n\n` +
+    `${notes ? `**Notes:** ${notes}\n\n` : ''}` +
+    `---\n_Submitted via Book a Ride form_`;
+
+  const dateTimestamp = new Date(`${rideDate}T${rideTime}`).getTime();
+
+  try {
+    const task = await clickupFetch(`/list/${LIST_ID}/task`, {
+      method: 'POST',
+      body: JSON.stringify({
+        name: taskName,
+        markdown_description: taskDesc,
+        due_date: dateTimestamp,
+        priority: mobility !== 'none' ? 2 : 3,
+        tags: [rideTypeLabel.toLowerCase().replace(' ', '-')],
+        notify_all: true,
+      }),
+    });
+
+    document.getElementById('formContainer').style.display = 'none';
+    document.getElementById('successScreen').classList.add('show');
+    document.getElementById('taskLink').innerHTML =
+      `Task ID: ${task.id} — <a href="${task.url}" target="_blank" style="color:var(--gold);">View in ClickUp</a>`;
+
+  } catch (err) {
+    alert(`Submission error: ${err.message}\nPlease try again or contact the church office.`);
+  } finally {
+    submitBtn.classList.remove('loading');
+    submitBtn.disabled = false;
+  }
+});
+
+// ═════════════════════════════════════════════════════
+// RESET
+// ═════════════════════════════════════════════════════
+function resetForm() {
+  document.getElementById('rideForm').reset();
+  document.getElementById('formContainer').style.display = '';
+  document.getElementById('successScreen').classList.remove('show');
+  document.getElementById('deniedScreen').classList.remove('show');
+  document.getElementById('rideSection').style.display = 'none';
+  document.getElementById('addressStatus').className = 'address-status';
+  document.getElementById('addressStatus').innerHTML = '';
+  verifiedAddress = null;
+  calculatedDistance = null;
+  document.querySelectorAll('.ride-toggle-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.ride-toggle-btn[data-value="to_church"]').classList.add('active');
+  document.querySelector('input[name="rideType"][value="to_church"]').checked = true;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ═════════════════════════════════════════════════════
+// INIT
+// ═════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => { setupWorkspace(); });
+</script>
+
+</body>
+</html>
