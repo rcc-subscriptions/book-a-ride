@@ -560,42 +560,71 @@ async function setupWorkspace() {
   formContainer.style.display = 'none';
 
   try {
-    logSetup('Creating "Book a Ride" space...');
-    const space = await clickupFetch(`/team/${CONFIG.TEAM_ID}/space`, {
-      method: 'POST',
-      body: JSON.stringify({
-        name: 'Book a Ride',
-        multiple_assignees: true,
-        features: {
-          due_dates: { enabled: true, start_date: true },
-          priorities: { enabled: true },
-          tags: { enabled: true },
-          custom_fields: { enabled: true },
-        },
-      }),
-    });
-    logSetup(`Space created: "${space.name}"`, 'ok');
+    // 1. Find or create the "Book a Ride" space
+    logSetup('Looking for "Book a Ride" space...');
+    const spacesData = await clickupFetch(`/team/${CONFIG.TEAM_ID}/space?archived=false`);
+    let space = spacesData.spaces.find(s => s.name === 'Book a Ride');
 
-    logSetup('Creating "Transportation Requests" folder...');
-    const folder = await clickupFetch(`/space/${space.id}/folder`, {
-      method: 'POST',
-      body: JSON.stringify({ name: 'Transportation Requests' }),
-    });
-    logSetup(`Folder created: "${folder.name}"`, 'ok');
+    if (space) {
+      logSetup(`Found existing space: "${space.name}"`, 'ok');
+    } else {
+      logSetup('Creating "Book a Ride" space...');
+      space = await clickupFetch(`/team/${CONFIG.TEAM_ID}/space`, {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Book a Ride',
+          multiple_assignees: true,
+          features: {
+            due_dates: { enabled: true, start_date: true },
+            priorities: { enabled: true },
+            tags: { enabled: true },
+            custom_fields: { enabled: true },
+          },
+        }),
+      });
+      logSetup(`Space created: "${space.name}"`, 'ok');
+    }
 
-    logSetup('Creating "Ride Requests" list...');
-    const list = await clickupFetch(`/folder/${folder.id}/list`, {
-      method: 'POST',
-      body: JSON.stringify({
-        name: 'Ride Requests',
-        content: 'Ride requests submitted by church members via the Book a Ride form.',
-      }),
-    });
+    // 2. Find or create the "Transportation Requests" folder
+    logSetup('Looking for "Transportation Requests" folder...');
+    const foldersData = await clickupFetch(`/space/${space.id}/folder?archived=false`);
+    let folder = foldersData.folders.find(f => f.name === 'Transportation Requests');
+
+    if (folder) {
+      logSetup(`Found existing folder: "${folder.name}"`, 'ok');
+    } else {
+      logSetup('Creating "Transportation Requests" folder...');
+      folder = await clickupFetch(`/space/${space.id}/folder`, {
+        method: 'POST',
+        body: JSON.stringify({ name: 'Transportation Requests' }),
+      });
+      logSetup(`Folder created: "${folder.name}"`, 'ok');
+    }
+
+    // 3. Find or create the "Ride Requests" list
+    logSetup('Looking for "Ride Requests" list...');
+    const listsData = await clickupFetch(`/folder/${folder.id}/list?archived=false`);
+    let list = listsData.lists.find(l => l.name === 'Ride Requests');
+
+    if (list) {
+      logSetup(`Found existing list: "${list.name}" (ID: ${list.id})`, 'ok');
+    } else {
+      logSetup('Creating "Ride Requests" list...');
+      list = await clickupFetch(`/folder/${folder.id}/list`, {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Ride Requests',
+          content: 'Ride requests submitted by church members via the Book a Ride form.',
+        }),
+      });
+      logSetup(`List created: "${list.name}" (ID: ${list.id})`, 'ok');
+    }
+
     LIST_ID = list.id;
     localStorage.setItem('bookARide_listId', LIST_ID);
-    logSetup(`List created: "${list.name}" (ID: ${list.id})`, 'ok');
 
-    logSetup('Creating custom fields...');
+    // 4. Ensure custom fields exist
+    logSetup('Checking custom fields...');
     const fields = [
       { name: 'Phone Number', type: 'phone' },
       { name: 'Email', type: 'email' },
@@ -622,7 +651,7 @@ async function setupWorkspace() {
         });
         logSetup(`  Field: "${field.name}"`, 'ok');
       } catch (err) {
-        logSetup(`  Field "${field.name}" — skipped (may exist)`, 'ok');
+        logSetup(`  Field "${field.name}" — already exists, skipped`, 'ok');
       }
     }
 
@@ -844,4 +873,3 @@ document.addEventListener('DOMContentLoaded', () => { setupWorkspace(); });
 
 </body>
 </html>
-
