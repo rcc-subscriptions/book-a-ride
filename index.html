@@ -498,9 +498,17 @@
 // CONFIGURATION
 // ═════════════════════════════════════════════════════
 const CONFIG = {
-  CLICKUP_TOKEN: 'pk_132235797_UK8KA59NCZNGTGBPCN7V30XPN56V68SR',
-  TEAM_ID: '90131008833',
+  // ═══ PROXY MODE (SECURE — token hidden on server) ═══
+  // After deploying your Cloudflare Worker, replace this URL:
+  PROXY_BASE: 'https://clickup-proxy.subscriptions-34a.workers.dev',
+  // Set to true once your Cloudflare Worker is deployed:
+  USE_PROXY: true,
+
+  // ═══ DIRECT MODE (fallback — token in client) ═══
+  // Token removed for security — proxy handles auth now
   API_BASE: 'https://api.clickup.com/api/v2',
+
+  TEAM_ID: '90131008833',
   CHURCH_LAT: 38.9847,
   CHURCH_LNG: -76.8545,
   MAX_RADIUS_MILES: 15,
@@ -512,13 +520,24 @@ let LIST_ID = localStorage.getItem('bookARide_listId') || null;
 // CLICKUP API
 // ═════════════════════════════════════════════════════
 async function clickupFetch(endpoint, options = {}) {
-  const res = await fetch(`${CONFIG.API_BASE}${endpoint}`, {
-    ...options,
-    headers: {
+  let url, headers;
+
+  if (CONFIG.USE_PROXY) {
+    // SECURE: route through Cloudflare Worker (no token exposed)
+    url = `${CONFIG.PROXY_BASE}${endpoint}`;
+    headers = { 'Content-Type': 'application/json' };
+  } else {
+    // DIRECT: token in client (use until proxy is set up)
+    url = `${CONFIG.API_BASE}${endpoint}`;
+    headers = {
       'Authorization': CONFIG.CLICKUP_TOKEN,
       'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
+    };
+  }
+
+  const res = await fetch(url, {
+    ...options,
+    headers: { ...headers, ...(options.headers || {}) },
   });
   if (!res.ok) {
     const errBody = await res.text();
