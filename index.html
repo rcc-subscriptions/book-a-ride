@@ -404,34 +404,12 @@
             <input type="hidden" name="rideType" value="to_church">
           </div>
 
-          <div class="field-row">
-            <div class="field">
-              <label for="rideDate">Sunday Pickup Date <span class="req">*</span></label>
-              <select id="rideDate" required>
-                <option value="">Select a Sunday</option>
-              </select>
-              <p style="font-size:11px; color:var(--text-light); margin-top:4px;">Pickups are available on Sundays only</p>
-            </div>
-            <div class="field">
-              <label for="rideTime">Pickup Time <span class="req">*</span></label>
-              <select id="rideTime" required>
-                <option value="">Select time</option>
-                <option value="07:00">7:00 AM</option>
-                <option value="07:15">7:15 AM</option>
-                <option value="07:30">7:30 AM</option>
-                <option value="07:45">7:45 AM</option>
-                <option value="08:00">8:00 AM</option>
-                <option value="08:15">8:15 AM</option>
-                <option value="08:30">8:30 AM</option>
-                <option value="08:45">8:45 AM</option>
-                <option value="09:00">9:00 AM</option>
-                <option value="09:15">9:15 AM</option>
-                <option value="09:30">9:30 AM</option>
-                <option value="09:45">9:45 AM</option>
-                <option value="10:00">10:00 AM</option>
-              </select>
-              <p style="font-size:11px; color:var(--text-light); margin-top:4px;">Between 7:00 AM – 10:00 AM</p>
-            </div>
+          <div class="field">
+            <label for="rideDate">Sunday Pickup Date <span class="req">*</span></label>
+            <select id="rideDate" required>
+              <option value="">Select a Sunday</option>
+            </select>
+            <p style="font-size:11px; color:var(--text-light); margin-top:4px;">Pickups are available on Sundays only</p>
           </div>
 
           <div class="field-row">
@@ -829,12 +807,12 @@ document.getElementById('rideForm').addEventListener('submit', async (e) => {
   const phone = document.getElementById('phone').value.trim();
   const rideType = 'to_church';
   const rideDate = document.getElementById('rideDate').value;
-  const rideTime = document.getElementById('rideTime').value;
+  const rideTime = '08:00'; // Default Sunday morning
   const passengers = document.getElementById('passengers').value;
   const mobility = document.getElementById('mobility').value;
   const notes = document.getElementById('notes').value.trim();
 
-  if (!firstName || !lastName || !email || !phone || !rideDate || !rideTime) {
+  if (!firstName || !lastName || !email || !phone || !rideDate) {
     alert('Please fill in all required fields.');
     return;
   }
@@ -854,9 +832,8 @@ document.getElementById('rideForm').addEventListener('submit', async (e) => {
     `**Phone:** ${phone}\n\n` +
     `**Pickup Address:** ${verifiedAddress}\n` +
     `**Distance from Church:** ${calculatedDistance} miles\n\n` +
-    `**Ride Type:** ${rideTypeLabel}\n` +
+    `**Ride Type:** Sunday Morning Pickup\n` +
     `**Date:** ${rideDate}\n` +
-    `**Time:** ${rideTime}\n` +
     `**Passengers:** ${passengers}\n` +
     `**Mobility Needs:** ${mobilityLabel}\n\n` +
     `${notes ? `**Notes:** ${notes}\n\n` : ''}` +
@@ -875,11 +852,19 @@ document.getElementById('rideForm').addEventListener('submit', async (e) => {
     // Build custom_fields array with actual values
     const customFields = [];
 
+    // Format phone number for ClickUp: must be like +13015551234
+    function formatPhone(p) {
+      const digits = p.replace(/\D/g, '');
+      if (digits.length === 10) return '+1' + digits;
+      if (digits.length === 11 && digits.startsWith('1')) return '+' + digits;
+      return '+1' + digits;
+    }
+
     if (fieldMap['Email']) {
       customFields.push({ id: fieldMap['Email'].id, value: email });
     }
     if (fieldMap['Phone Number']) {
-      customFields.push({ id: fieldMap['Phone Number'].id, value: phone });
+      customFields.push({ id: fieldMap['Phone Number'].id, value: formatPhone(phone) });
     }
     if (fieldMap['Pickup Address']) {
       customFields.push({ id: fieldMap['Pickup Address'].id, value: verifiedAddress });
@@ -903,18 +888,35 @@ document.getElementById('rideForm').addEventListener('submit', async (e) => {
       }
     }
 
-    const task = await clickupFetch(`/list/${LIST_ID}/task`, {
-      method: 'POST',
-      body: JSON.stringify({
-        name: taskName,
-        markdown_description: taskDesc,
-        due_date: dateTimestamp,
-        priority: mobility !== 'none' ? 2 : 3,
-        tags: [rideTypeLabel.toLowerCase().replace(' ', '-')],
-        notify_all: true,
-        custom_fields: customFields,
-      }),
-    });
+    let task;
+    try {
+      task = await clickupFetch(`/list/${LIST_ID}/task`, {
+        method: 'POST',
+        body: JSON.stringify({
+          name: taskName,
+          markdown_description: taskDesc,
+          due_date: dateTimestamp,
+          priority: mobility !== 'none' ? 2 : 3,
+          tags: [rideTypeLabel.toLowerCase().replace(' ', '-')],
+          notify_all: true,
+          custom_fields: customFields,
+        }),
+      });
+    } catch (fieldErr) {
+      // Fallback: create task without custom fields if they cause issues
+      console.warn('Custom fields failed, creating task without them:', fieldErr);
+      task = await clickupFetch(`/list/${LIST_ID}/task`, {
+        method: 'POST',
+        body: JSON.stringify({
+          name: taskName,
+          markdown_description: taskDesc,
+          due_date: dateTimestamp,
+          priority: mobility !== 'none' ? 2 : 3,
+          tags: [rideTypeLabel.toLowerCase().replace(' ', '-')],
+          notify_all: true,
+        }),
+      });
+    }
 
     document.getElementById('formContainer').style.display = 'none';
     document.getElementById('successScreen').classList.add('show');
