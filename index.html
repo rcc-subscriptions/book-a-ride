@@ -405,9 +405,8 @@
           </div>
 
           <div class="field">
-            <label for="rideDate">Sunday Pickup Date <span class="req">*</span></label>
+            <label for="rideDate">This Sunday's Pickup Date</label>
             <select id="rideDate" required>
-              <option value="">Select a Sunday</option>
             </select>
             <p style="font-size:11px; color:var(--text-light); margin-top:4px;">Pickups are available on Sundays only</p>
           </div>
@@ -458,7 +457,6 @@
       <h2>Ride Request Received!</h2>
       <p>Your Sunday pickup request has been submitted. A member of the Redeemers Church of Christ Transportation Department will reach out to confirm your ride.</p>
       <div id="confirmationDetails" style="text-align:left; background:var(--cream); border-radius:var(--radius); padding:18px 20px; margin:0 auto 24px; max-width:380px; font-size:13.5px; color:var(--text-mid); line-height:1.7;"></div>
-      <p id="taskLink" style="font-size:12px; color:var(--text-light);"></p>
       <button class="btn-secondary" onclick="resetForm()">Submit Another Request</button>
     </div>
 
@@ -758,38 +756,35 @@ function showAddressStatus(type, message) {
 }
 
 // ═════════════════════════════════════════════════════
-// POPULATE SUNDAYS ONLY
+// POPULATE NEXT SUNDAY ONLY
 // ═════════════════════════════════════════════════════
-function populateSundays() {
+function populateSunday() {
   const select = document.getElementById('rideDate');
   const today = new Date();
-  // Find next Sunday
+  const dayOfWeek = today.getDay(); // 0 = Sunday
+
   let nextSunday = new Date(today);
-  const dayOfWeek = today.getDay();
-  if (dayOfWeek === 0 && today.getHours() < 10) {
-    // It's Sunday before 10am, include today
-  } else {
-    nextSunday.setDate(today.getDate() + (7 - dayOfWeek) % 7 || 7);
-  }
-  // If today is Sunday and before 10am, start from today
-  if (dayOfWeek === 0 && today.getHours() < 10) {
+  if (dayOfWeek === 0) {
+    // Today is Sunday — use today
     nextSunday = new Date(today);
+  } else {
+    // Find next Sunday
+    nextSunday.setDate(today.getDate() + (7 - dayOfWeek));
   }
-  // Generate next 8 Sundays
-  for (let i = 0; i < 8; i++) {
-    const sunday = new Date(nextSunday);
-    sunday.setDate(nextSunday.getDate() + (i * 7));
-    const dateStr = sunday.toISOString().split('T')[0];
-    const displayStr = sunday.toLocaleDateString('en-US', {
-      weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
-    });
-    const option = document.createElement('option');
-    option.value = dateStr;
-    option.textContent = displayStr;
-    select.appendChild(option);
-  }
+
+  const dateStr = nextSunday.toISOString().split('T')[0];
+  const displayStr = nextSunday.toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+  });
+
+  // Remove the "Select a Sunday" placeholder and just show the date
+  select.innerHTML = '';
+  const option = document.createElement('option');
+  option.value = dateStr;
+  option.textContent = displayStr;
+  select.appendChild(option);
 }
-populateSundays();
+populateSunday();
 
 // ═════════════════════════════════════════════════════
 // FORM SUBMISSION → CLICKUP TASK
@@ -927,19 +922,19 @@ document.getElementById('rideForm').addEventListener('submit', async (e) => {
       weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
     });
     document.getElementById('confirmationDetails').innerHTML =
-      `<div style="border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:8px; font-weight:600; color:var(--text-dark);">Your Ride Details</div>` +
-      `<div><strong>Name:</strong> ${firstName} ${lastName}</div>` +
-      `<div><strong>Email:</strong> ${email}</div>` +
-      `<div><strong>Phone:</strong> ${phone}</div>` +
-      `<div><strong>Pickup Address:</strong> ${verifiedAddress}</div>` +
-      `<div><strong>Sunday Date:</strong> ${rideDateDisplay}</div>` +
-      `<div><strong>Passengers:</strong> ${passengers}</div>` +
-      `<div><strong>Mobility Needs:</strong> ${mobilityLabel}</div>` +
-      `${notes ? `<div><strong>Notes:</strong> ${notes}</div>` : ''}` +
-      `<div style="border-top:1px solid var(--border); padding-top:8px; margin-top:8px; font-size:12px; color:var(--text-light);">Please screenshot this for your records.</div>`;
+      '<div style="border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:10px; font-weight:600; color:var(--text-dark); font-size:15px;">Your Ride Details</div>' +
+      '<div style="margin-bottom:6px;"><strong>Name:</strong> ' + firstName + ' ' + lastName + '</div>' +
+      '<div style="margin-bottom:6px;"><strong>Email:</strong> ' + email + '</div>' +
+      '<div style="margin-bottom:6px;"><strong>Phone:</strong> ' + phone + '</div>' +
+      '<div style="margin-bottom:6px;"><strong>Pickup Address:</strong> ' + verifiedAddress + '</div>' +
+      '<div style="margin-bottom:6px;"><strong>Sunday Date:</strong> ' + rideDateDisplay + '</div>' +
+      '<div style="margin-bottom:6px;"><strong>Passengers:</strong> ' + passengers + '</div>' +
+      '<div style="margin-bottom:6px;"><strong>Mobility Needs:</strong> ' + mobilityLabel + '</div>' +
+      (notes ? '<div style="margin-bottom:6px;"><strong>Notes:</strong> ' + notes + '</div>' : '') +
+      '<div style="border-top:1px solid var(--border); padding-top:10px; margin-top:10px; font-size:12px; color:var(--text-light); text-align:center;">Please screenshot this page for your records.</div>';
 
-    document.getElementById('taskLink').innerHTML =
-      `Task ID: ${task.id} — <a href="${task.url}" target="_blank" style="color:var(--gold);">View in ClickUp</a>`;
+    // Log task link for admin reference only
+    console.log('ClickUp Task:', task.id, task.url);
 
   } catch (err) {
     alert(`Submission error: ${err.message}\nPlease try again or contact the church office.`);
