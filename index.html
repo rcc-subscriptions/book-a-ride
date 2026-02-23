@@ -408,7 +408,7 @@
             <label for="rideDate">This Sunday's Pickup Date</label>
             <select id="rideDate" required>
             </select>
-            <p style="font-size:11px; color:var(--text-light); margin-top:4px;">Pickups are available on Sundays only</p>
+            <p style="font-size:11px; color:var(--text-light); margin-top:4px;">Sunday pickups between 7–9 AM EST. Requests close at 9 AM on Sunday.</p>
           </div>
 
           <div class="field-row">
@@ -760,16 +760,23 @@ function showAddressStatus(type, message) {
 // ═════════════════════════════════════════════════════
 function populateSunday() {
   const select = document.getElementById('rideDate');
-  const today = new Date();
-  const dayOfWeek = today.getDay(); // 0 = Sunday
 
-  let nextSunday = new Date(today);
-  if (dayOfWeek === 0) {
-    // Today is Sunday — use today
-    nextSunday = new Date(today);
+  // Get current time in EST/EDT
+  const now = new Date();
+  const estStr = now.toLocaleString('en-US', { timeZone: 'America/New_York' });
+  const estNow = new Date(estStr);
+  const dayOfWeek = estNow.getDay(); // 0 = Sunday
+  const hour = estNow.getHours();
+
+  let nextSunday = new Date(estNow);
+
+  if (dayOfWeek === 0 && hour < 9) {
+    // It's Sunday before 9am EST — this Sunday is still available
+    nextSunday = new Date(estNow);
   } else {
-    // Find next Sunday
-    nextSunday.setDate(today.getDate() + (7 - dayOfWeek));
+    // After 9am on Sunday OR any other day — show next Sunday
+    const daysUntilSunday = (7 - dayOfWeek) % 7 || 7;
+    nextSunday.setDate(estNow.getDate() + daysUntilSunday);
   }
 
   const dateStr = nextSunday.toISOString().split('T')[0];
@@ -777,7 +784,6 @@ function populateSunday() {
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
   });
 
-  // Remove the "Select a Sunday" placeholder and just show the date
   select.innerHTML = '';
   const option = document.createElement('option');
   option.value = dateStr;
