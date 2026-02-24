@@ -349,34 +349,16 @@
 
         <div class="section-label"><span class="num">2</span> Your Address</div>
 
-        <div class="field">
-          <label for="street">Street Address <span class="req">*</span></label>
-          <input type="text" id="street" placeholder="1234 Main Street" required>
+        <div class="field" style="position:relative;">
+          <label for="addressInput">Home Address <span class="req">*</span></label>
+          <input type="text" id="addressInput" placeholder="Start typing your address..." required autocomplete="off">
+          <input type="hidden" id="state" value="MD">
+          <div id="addressSuggestions" style="display:none; position:absolute; left:0; right:0; top:100%; background:white; border:1px solid var(--border); border-top:none; border-radius:0 0 var(--radius) var(--radius); box-shadow:0 6px 20px rgba(0,0,0,0.12); z-index:100; max-height:220px; overflow-y:auto;"></div>
+          <p style="font-size:11px; color:var(--text-light); margin-top:4px;">Only Maryland addresses are supported</p>
         </div>
+
         <div class="field-row">
-          <div class="field">
-            <label for="city">City <span class="req">*</span></label>
-            <input type="text" id="city" placeholder="Lanham" required>
-          </div>
-          <div class="field">
-            <label for="state">State <span class="req">*</span></label>
-            <select id="state" required>
-              <option value="">Select state</option>
-              <option value="MD" selected>Maryland</option>
-              <option value="DC">Washington D.C.</option>
-              <option value="VA">Virginia</option>
-              <option value="PA">Pennsylvania</option>
-              <option value="DE">Delaware</option>
-              <option value="WV">West Virginia</option>
-            </select>
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label for="zip">ZIP Code <span class="req">*</span></label>
-            <input type="text" id="zip" placeholder="20706" maxlength="5" required>
-          </div>
-          <div class="field">
+          <div class="field" style="flex:1;">
             <label>&nbsp;</label>
             <button type="button" id="verifyBtn" class="btn-submit" style="padding:12px; font-size:13.5px; margin-top:0;">
               <span class="btn-text">Verify My Address</span>
@@ -715,50 +697,142 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
 // ═════════════════════════════════════════════════════
 let verifiedAddress = null;
 let calculatedDistance = null;
+let selectedLat = null;
+let selectedLng = null;
 
+// ── Address Autocomplete (Nominatim, Maryland only) ──
+let debounceTimer = null;
+const addressInput = document.getElementById('addressInput');
+const suggestionsDiv = document.getElementById('addressSuggestions');
+
+addressInput.addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  const query = addressInput.value.trim();
+  if (query.length < 4) {
+    suggestionsDiv.style.display = 'none';
+    return;
+  }
+  debounceTimer = setTimeout(() => fetchSuggestions(query), 350);
+});
+
+addressInput.addEventListener('focus', () => {
+  if (suggestionsDiv.children.length > 0) suggestionsDiv.style.display = 'block';
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#addressInput') && !e.target.closest('#addressSuggestions')) {
+    suggestionsDiv.style.display = 'none';
+  }
+});
+
+async function fetchSuggestions(query) {
+  try {
+    // Search Maryland addresses only using state=Maryland and countrycodes=us
+    const url = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=us&state=Maryland&q=' + encodeURIComponent(query + ', Maryland');
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'RCC-BookARide/1.0' }
+    });
+    const results = await res.json();
+
+    // Filter to only Maryland results
+    const mdResults = results.filter(r =>
+      r.address && (r.address.state === 'Maryland' || r.address.state_code === 'MD')
+    );
+
+    suggestionsDiv.innerHTML = '';
+    if (mdResults.length === 0) {
+      suggestionsDiv.innerHTML = '<div style="padding:10px 14px; font-size:12px; color:var(--text-light);">No Maryland addresses found. Keep typing...</div>';
+      suggestionsDiv.style.display = 'block';
+      return;
+    }
+
+    mdResults.forEach(r => {
+      const div = document.createElement('div');
+      div.style.cssText = 'padding:10px 14px; cursor:pointer; font-size:13px; border-bottom:1px solid var(--border); transition:background 0.15s;';
+      div.onmouseenter = () => div.style.background = 'var(--gold-pale)';
+      div.onmouseleave = () => div.style.background = 'white';
+
+      // Build clean display address
+      const addr = r.address || {};
+      const houseNum = addr.house_number || '';
+      const road = addr.road || '';
+      const city = addr.city || addr.town || addr.village || addr.hamlet || '';
+      const zip = addr.postcode || '';
+      const displayAddr = [houseNum, road].filter(Boolean).join(' ');
+      const displayLine2 = [city, 'MD', zip].filter(Boolean).join(', ');
+
+      div.innerHTML = '<div style="font-weight:500; color:var(--text-dark);">' + (displayAddr || r.display_name.split(',')[0]) + '</div>' +
+        '<div style="font-size:11px; color:var(--text-light);">' + displayLine2 + '</div>';
+
+      div.addEventListener('click', () => {
+        const fullAddr = displayAddr + ', ' + displayLine2;
+        addressInput.value = fullAddr;
+        selectedLat = parseFloat(r.lat);
+        selectedLng = parseFloat(r.lon);
+        suggestionsDiv.style.display = 'none';
+
+        // Auto-verify on selection
+        verifySelectedAddress(fullAddr, selectedLat, selectedLng);
+      });
+
+      suggestionsDiv.appendChild(div);
+    });
+    suggestionsDiv.style.display = 'block';
+  } catch (err) {
+    console.warn('Autocomplete error:', err);
+  }
+}
+
+function verifySelectedAddress(fullAddress, lat, lng) {
+  document.getElementById('verifyBtn').classList.add('loading');
+  showAddressStatus('checking', 'Verifying your address...');
+
+  const distance = haversineDistance(CONFIG.CHURCH_LAT, CONFIG.CHURCH_LNG, lat, lng);
+  calculatedDistance = Math.round(distance * 10) / 10;
+
+  if (distance <= CONFIG.MAX_RADIUS_MILES) {
+    verifiedAddress = fullAddress;
+    showAddressStatus('success', 'Address verified — ' + calculatedDistance + ' miles from church. You\'re within the service area!');
+    document.getElementById('rideSection').style.display = '';
+    document.getElementById('rideSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else {
+    verifiedAddress = null;
+    showAddressStatus('error', 'Your address is ' + calculatedDistance + ' miles from church, which exceeds our 15-mile service radius.');
+    document.getElementById('rideSection').style.display = 'none';
+    setTimeout(() => {
+      document.getElementById('deniedMsg').textContent =
+        'Your address (' + calculatedDistance + ' miles away) is outside our 15-mile service area. Please contact the Redeemers Church of Christ office at 10001 Aerospace Road, Lanham, MD 20706 for alternative transportation arrangements.';
+      document.getElementById('formContainer').style.display = 'none';
+      document.getElementById('deniedScreen').classList.add('show');
+    }, 1500);
+  }
+  document.getElementById('verifyBtn').classList.remove('loading');
+}
+
+// Manual verify button (if user types address without selecting suggestion)
 document.getElementById('verifyBtn').addEventListener('click', async () => {
-  const street = document.getElementById('street').value.trim();
-  const city = document.getElementById('city').value.trim();
-  const state = document.getElementById('state').value;
-  const zip = document.getElementById('zip').value.trim();
-
-  if (!street || !city || !state || !zip) {
-    showAddressStatus('error', 'Please fill in all address fields before verifying.');
+  const addr = addressInput.value.trim();
+  if (!addr) {
+    showAddressStatus('error', 'Please enter your address.');
     return;
   }
 
-  const fullAddress = `${street}, ${city}, ${state} ${zip}`;
+  // If already verified from autocomplete selection, skip
+  if (verifiedAddress === addr) return;
+
   showAddressStatus('checking', 'Verifying your address...');
   document.getElementById('verifyBtn').classList.add('loading');
 
   try {
-    const result = await geocodeAddress(fullAddress);
+    const result = await geocodeAddress(addr + ', Maryland');
     if (!result) {
-      showAddressStatus('error', 'Could not find your address. Please check the details and try again.');
+      showAddressStatus('error', 'Could not find your address. Please select from the dropdown suggestions.');
       document.getElementById('rideSection').style.display = 'none';
       verifiedAddress = null;
       return;
     }
 
-    const distance = haversineDistance(CONFIG.CHURCH_LAT, CONFIG.CHURCH_LNG, result.lat, result.lng);
-    calculatedDistance = Math.round(distance * 10) / 10;
-
-    if (distance <= CONFIG.MAX_RADIUS_MILES) {
-      verifiedAddress = fullAddress;
-      showAddressStatus('success', `Address verified — ${calculatedDistance} miles from church. You're within the service area!`);
-      document.getElementById('rideSection').style.display = '';
-      document.getElementById('rideSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-      verifiedAddress = null;
-      showAddressStatus('error', `Your address is ${calculatedDistance} miles from church, which exceeds our 15-mile service radius.`);
-      document.getElementById('rideSection').style.display = 'none';
-      setTimeout(() => {
-        document.getElementById('deniedMsg').textContent =
-          `Your address (${calculatedDistance} miles away) is outside our 15-mile service area. Please contact the Redeemers Church of Christ office at 10001 Aerospace Road, Lanham, MD 20706 for alternative transportation arrangements.`;
-        document.getElementById('formContainer').style.display = 'none';
-        document.getElementById('deniedScreen').classList.add('show');
-      }, 1500);
-    }
+    verifySelectedAddress(addr, result.lat, result.lng);
   } catch (err) {
     showAddressStatus('error', 'Verification service unavailable. Please try again shortly.');
   } finally {
@@ -1110,6 +1184,9 @@ function resetForm() {
   document.getElementById('rideSection').style.display = 'none';
   document.getElementById('addressStatus').className = 'address-status';
   document.getElementById('addressStatus').innerHTML = '';
+  document.getElementById('addressInput').value = '';
+  document.getElementById('addressSuggestions').style.display = 'none';
+  document.getElementById('addressSuggestions').innerHTML = '';
   // Reset frequency toggle
   const onceBtn = document.getElementById('freqOnce');
   const recurBtn = document.getElementById('freqRecurring');
@@ -1122,6 +1199,8 @@ function resetForm() {
   document.getElementById('recurringNote').style.display = 'none';
   verifiedAddress = null;
   calculatedDistance = null;
+  selectedLat = null;
+  selectedLng = null;
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
