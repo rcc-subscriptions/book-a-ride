@@ -708,11 +708,18 @@ const suggestionsDiv = document.getElementById('addressSuggestions');
 addressInput.addEventListener('input', () => {
   clearTimeout(debounceTimer);
   const query = addressInput.value.trim();
-  if (query.length < 4) {
+  // Reset verification when user changes address
+  verifiedAddress = null;
+  selectedLat = null;
+  selectedLng = null;
+  document.getElementById('rideSection').style.display = 'none';
+  document.getElementById('addressStatus').className = 'address-status';
+  document.getElementById('addressStatus').innerHTML = '';
+  if (query.length < 3) {
     suggestionsDiv.style.display = 'none';
     return;
   }
-  debounceTimer = setTimeout(() => fetchSuggestions(query), 350);
+  debounceTimer = setTimeout(() => fetchSuggestions(query), 300);
 });
 
 addressInput.addEventListener('focus', () => {
@@ -727,26 +734,39 @@ document.addEventListener('click', (e) => {
 
 async function fetchSuggestions(query) {
   try {
-    // Search Maryland addresses only using state=Maryland and countrycodes=us
-    const url = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=us&state=Maryland&q=' + encodeURIComponent(query + ', Maryland');
+    // Maryland bounding box: SW(37.91,-79.49) to NE(39.72,-75.05)
+    // Use viewbox + bounded to restrict to Maryland area
+    const params = new URLSearchParams({
+      format: 'json',
+      addressdetails: '1',
+      limit: '6',
+      countrycodes: 'us',
+      viewbox: '-79.49,37.91,-75.05,39.72',
+      bounded: '1',
+      q: query,
+    });
+    const url = 'https://nominatim.openstreetmap.org/search?' + params.toString();
     const res = await fetch(url, {
       headers: { 'User-Agent': 'RCC-BookARide/1.0' }
     });
     const results = await res.json();
 
-    // Filter to only Maryland results
-    const mdResults = results.filter(r =>
-      r.address && (r.address.state === 'Maryland' || r.address.state_code === 'MD')
-    );
+    // Filter to only results that have a house number (actual addresses, not just cities/roads)
+    const addressResults = results.filter(r => {
+      const addr = r.address || {};
+      // Accept results in Maryland (or very close border areas)
+      const isMD = addr.state === 'Maryland' || addr.state_code === 'MD';
+      return isMD;
+    });
 
     suggestionsDiv.innerHTML = '';
-    if (mdResults.length === 0) {
-      suggestionsDiv.innerHTML = '<div style="padding:10px 14px; font-size:12px; color:var(--text-light);">No Maryland addresses found. Keep typing...</div>';
+    if (addressResults.length === 0) {
+      suggestionsDiv.innerHTML = '<div style="padding:10px 14px; font-size:12px; color:var(--text-light);">No Maryland addresses found. Try including street number and city.</div>';
       suggestionsDiv.style.display = 'block';
       return;
     }
 
-    mdResults.forEach(r => {
+    addressResults.forEach(r => {
       const div = document.createElement('div');
       div.style.cssText = 'padding:10px 14px; cursor:pointer; font-size:13px; border-bottom:1px solid var(--border); transition:background 0.15s;';
       div.onmouseenter = () => div.style.background = 'var(--gold-pale)';
@@ -756,7 +776,7 @@ async function fetchSuggestions(query) {
       const addr = r.address || {};
       const houseNum = addr.house_number || '';
       const road = addr.road || '';
-      const city = addr.city || addr.town || addr.village || addr.hamlet || '';
+      const city = addr.city || addr.town || addr.village || addr.hamlet || addr.county || '';
       const zip = addr.postcode || '';
       const displayAddr = [houseNum, road].filter(Boolean).join(' ');
       const displayLine2 = [city, 'MD', zip].filter(Boolean).join(', ');
