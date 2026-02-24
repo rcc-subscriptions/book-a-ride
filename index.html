@@ -281,36 +281,8 @@
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Google Places Autocomplete Styling */
-  .pac-container {
-    font-family: 'Outfit', sans-serif;
-    border: 1px solid var(--border);
-    border-top: none;
-    border-radius: 0 0 10px 10px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-    margin-top: -1px;
-    z-index: 10000;
-  }
-  .pac-item {
-    padding: 10px 14px;
-    font-size: 13px;
-    cursor: pointer;
-    border-bottom: 1px solid #f0ede4;
-    line-height: 1.5;
-  }
-  .pac-item:hover, .pac-item-selected {
-    background: var(--gold-pale, #F5EDD4);
-  }
-  .pac-item-query {
-    font-weight: 500;
-    color: #1B2040;
-    font-size: 13.5px;
-  }
-  .pac-icon { display: none; }
-  .pac-item span:last-child {
-    font-size: 11.5px;
-    color: #7A7565;
-  }
+  /* Hide Google's default autocomplete dropdown — we use our own */
+  .pac-container { display: none !important; }
 </style>
 </head>
 <body>
@@ -1173,56 +1145,130 @@ function initGoogleMaps() {
   var input = document.getElementById('addressInput');
   if (!input) return;
 
-  // Maryland bounding box — strict bounds means ONLY results inside this area
-  var mdSouthWest = new google.maps.LatLng(37.91, -79.49);
-  var mdNorthEast = new google.maps.LatLng(39.72, -75.05);
-  var mdBounds = new google.maps.LatLngBounds(mdSouthWest, mdNorthEast);
+  var service = new google.maps.places.AutocompleteService();
+  var placesService = new google.maps.places.PlacesService(document.createElement('div'));
+  var sessionToken = new google.maps.places.AutocompleteSessionToken();
 
-  var ac = new google.maps.places.Autocomplete(input, {
-    bounds: mdBounds,
-    strictBounds: true,
-    componentRestrictions: { country: 'us' },
-    types: ['address'],
-    fields: ['formatted_address', 'geometry', 'address_components'],
-  });
+  // Church location for biasing
+  var churchLoc = new google.maps.LatLng(38.9847, -76.8545);
 
-  ac.addListener('place_changed', function() {
-    var place = ac.getPlace();
-    if (!place || !place.geometry) {
-      showAddressStatus('error', 'Please select an address from the dropdown.');
+  // Create dropdown container
+  var dropdown = document.createElement('div');
+  dropdown.id = 'md-address-dropdown';
+  dropdown.style.cssText = 'display:none; position:absolute; left:0; right:0; top:100%; background:white; border:1px solid #e0ddd0; border-top:none; border-radius:0 0 10px 10px; box-shadow:0 6px 20px rgba(0,0,0,0.1); z-index:10000; max-height:240px; overflow-y:auto;';
+  input.parentNode.style.position = 'relative';
+  input.parentNode.appendChild(dropdown);
+
+  var debounce = null;
+
+  input.addEventListener('input', function() {
+    clearTimeout(debounce);
+    var query = input.value.trim();
+    if (query.length < 3) {
+      dropdown.style.display = 'none';
       return;
     }
+    debounce = setTimeout(function() {
+      service.getPlacePredictions({
+        input: query + ' Maryland',
+        sessionToken: sessionToken,
+        componentRestrictions: { country: 'us' },
+        locationBias: { center: churchLoc, radius: 40000 },
+        types: ['address'],
+      }, function(predictions, status) {
+        dropdown.innerHTML = '';
 
-    // Only allow Maryland
-    var comps = place.address_components || [];
-    var stateComp = null;
-    for (var i = 0; i < comps.length; i++) {
-      if (comps[i].types.indexOf('administrative_area_level_1') !== -1) {
-        stateComp = comps[i];
-        break;
-      }
-    }
-    var st = stateComp ? stateComp.short_name : '';
+        if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions) {
+          dropdown.style.display = 'none';
+          return;
+        }
 
-    if (st !== 'MD') {
-      showAddressStatus('error', 'Only Maryland addresses are accepted. Your address is in ' + (stateComp ? stateComp.long_name : 'another state') + '.');
-      verifiedAddress = null;
-      document.getElementById('rideSection').style.display = 'none';
-      return;
-    }
+        // Filter to only Maryland addresses
+        var mdPredictions = predictions.filter(function(p) {
+          var desc = p.description.toUpperCase();
+          return desc.indexOf(', MD') !== -1 || desc.indexOf('MARYLAND') !== -1;
+        });
 
-    selectedLat = place.geometry.location.lat();
-    selectedLng = place.geometry.location.lng();
-    input.value = place.formatted_address;
-    verifySelectedAddress(place.formatted_address, selectedLat, selectedLng);
+        if (mdPredictions.length === 0) {
+          dropdown.innerHTML = '<div style="padding:12px 14px; font-size:12px; color:#7A7565;">No Maryland addresses found. Try adding more detail.</div>';
+          dropdown.style.display = 'block';
+          return;
+        }
+
+        mdPredictions.forEach(function(prediction) {
+          var item = document.createElement('div');
+          item.style.cssText = 'padding:11px 14px; cursor:pointer; font-size:13px; border-bottom:1px solid #f0ede4; transition:background 0.15s;';
+          item.onmouseenter = function() { item.style.background = '#F5EDD4'; };
+          item.onmouseleave = function() { item.style.background = 'white'; };
+
+          // Bold the matched text
+          var main = prediction.structured_formatting.main_text || '';
+          var secondary = prediction.structured_formatting.secondary_text || '';
+          item.innerHTML = '<div style="font-weight:500; color:#1B2040;">' + main + '</div>' +
+            '<div style="font-size:11px; color:#7A7565;">' + secondary + '</div>';
+
+          item.addEventListener('click', function() {
+            dropdown.style.display = 'none';
+
+            // Get full place details
+            placesService.getDetails({
+              placeId: prediction.place_id,
+              fields: ['formatted_address', 'geometry', 'address_components'],
+              sessionToken: sessionToken,
+            }, function(place, detailStatus) {
+              if (detailStatus !== google.maps.places.PlacesServiceStatus.OK || !place || !place.geometry) {
+                showAddressStatus('error', 'Could not verify this address. Please try again.');
+                return;
+              }
+
+              // Double-check it's Maryland
+              var comps = place.address_components || [];
+              var stateComp = null;
+              for (var i = 0; i < comps.length; i++) {
+                if (comps[i].types.indexOf('administrative_area_level_1') !== -1) {
+                  stateComp = comps[i];
+                  break;
+                }
+              }
+              var st = stateComp ? stateComp.short_name : '';
+
+              if (st !== 'MD') {
+                showAddressStatus('error', 'Only Maryland addresses are accepted.');
+                verifiedAddress = null;
+                document.getElementById('rideSection').style.display = 'none';
+                return;
+              }
+
+              selectedLat = place.geometry.location.lat();
+              selectedLng = place.geometry.location.lng();
+              input.value = place.formatted_address;
+              verifySelectedAddress(place.formatted_address, selectedLat, selectedLng);
+
+              // New session token for next search
+              sessionToken = new google.maps.places.AutocompleteSessionToken();
+            });
+          });
+
+          dropdown.appendChild(item);
+        });
+        dropdown.style.display = 'block';
+      });
+    }, 250);
   });
 
-  // Prevent Enter from submitting form while dropdown is open
+  // Close dropdown when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('#addressInput') && !e.target.closest('#md-address-dropdown')) {
+      dropdown.style.display = 'none';
+    }
+  });
+
+  // Prevent Enter from submitting form
   input.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') e.preventDefault();
   });
 
-  console.log('Google Places Autocomplete ready');
+  console.log('Google Places Autocomplete ready (Maryland only)');
 }
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD6aFSYheMeqE7NUs3zZolyxPojLQuTqg4&libraries=places&callback=initGoogleMaps"></script>
