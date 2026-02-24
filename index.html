@@ -411,6 +411,27 @@
             <p style="font-size:11px; color:var(--text-light); margin-top:4px;">Sunday pickups between 7–9 AM EST. Requests close at 9 AM on Sunday.</p>
           </div>
 
+          <div class="field">
+            <label>Ride Frequency <span class="req">*</span></label>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+              <label id="freqOnce" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:16px 12px; background:var(--gold-pale); border:2px solid var(--gold); border-radius:var(--radius); cursor:pointer; transition:all 0.25s; box-shadow:0 0 0 3px rgba(184,150,46,0.12);">
+                <input type="radio" name="rideFrequency" value="one_time" checked style="display:none;">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#1B2040" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="12" cy="16" r="2"/></svg>
+                <span style="font-size:13px; font-weight:600; color:var(--text-dark);">One Time</span>
+                <span style="font-size:11px; color:var(--text-light);">This Sunday only</span>
+              </label>
+              <label id="freqRecurring" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:16px 12px; background:var(--cream); border:2px solid var(--border); border-radius:var(--radius); cursor:pointer; transition:all 0.25s;">
+                <input type="radio" name="rideFrequency" value="recurring" style="display:none;">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#1B2040" stroke-width="1.5"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+                <span style="font-size:13px; font-weight:600; color:var(--text-dark);">Every Sunday</span>
+                <span style="font-size:11px; color:var(--text-light);">Recurring until cancelled</span>
+              </label>
+            </div>
+            <div id="recurringNote" style="display:none; margin-top:10px; padding:12px 14px; background:var(--green-bg); border-left:3px solid var(--green); border-radius:var(--radius); font-size:12px; color:var(--green);">
+              <strong>Recurring Ride:</strong> You will be picked up every Sunday for the next 48 weeks starting this week. <span style="color:var(--red);"><strong>Please note:</strong> 3 consecutive no-shows will result in automatic cancellation. You will need to submit a new request to resume rides.</span>
+            </div>
+          </div>
+
           <div class="field-row">
             <div class="field">
               <label for="passengers">Passengers <span class="req">*</span></label>
@@ -793,6 +814,34 @@ function populateSunday() {
 populateSunday();
 
 // ═════════════════════════════════════════════════════
+// RIDE FREQUENCY TOGGLE
+// ═════════════════════════════════════════════════════
+document.querySelectorAll('input[name="rideFrequency"]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    const onceBtn = document.getElementById('freqOnce');
+    const recurBtn = document.getElementById('freqRecurring');
+    const note = document.getElementById('recurringNote');
+    if (radio.value === 'recurring') {
+      recurBtn.style.background = 'var(--gold-pale)';
+      recurBtn.style.borderColor = 'var(--gold)';
+      recurBtn.style.boxShadow = '0 0 0 3px rgba(184,150,46,0.12)';
+      onceBtn.style.background = 'var(--cream)';
+      onceBtn.style.borderColor = 'var(--border)';
+      onceBtn.style.boxShadow = 'none';
+      note.style.display = 'block';
+    } else {
+      onceBtn.style.background = 'var(--gold-pale)';
+      onceBtn.style.borderColor = 'var(--gold)';
+      onceBtn.style.boxShadow = '0 0 0 3px rgba(184,150,46,0.12)';
+      recurBtn.style.background = 'var(--cream)';
+      recurBtn.style.borderColor = 'var(--border)';
+      recurBtn.style.boxShadow = 'none';
+      note.style.display = 'none';
+    }
+  });
+});
+
+// ═════════════════════════════════════════════════════
 // FORM SUBMISSION → CLICKUP TASK
 // ═════════════════════════════════════════════════════
 document.getElementById('rideForm').addEventListener('submit', async (e) => {
@@ -813,6 +862,8 @@ document.getElementById('rideForm').addEventListener('submit', async (e) => {
   const passengers = document.getElementById('passengers').value;
   const mobility = document.getElementById('mobility').value;
   const notes = document.getElementById('notes').value.trim();
+  const frequency = document.querySelector('input[name="rideFrequency"]:checked').value;
+  const isRecurring = frequency === 'recurring';
 
   if (!firstName || !lastName || !email || !phone || !rideDate) {
     alert('Please fill in all required fields.');
@@ -825,8 +876,11 @@ document.getElementById('rideForm').addEventListener('submit', async (e) => {
 
   const rideTypeLabel = rideType === 'to_church' ? 'To Church' : 'From Church';
   const mobilityLabel = { none:'No special needs', wheelchair:'Wheelchair accessible', walker:'Walker / cane assistance', other:'Other' }[mobility];
+  const frequencyLabel = isRecurring ? 'Every Sunday (Recurring)' : 'One Time';
 
-  const taskName = `🚗 ${firstName} ${lastName} — ${rideTypeLabel} (${rideDate})`;
+  const taskName = isRecurring
+    ? `🔄 ${firstName} ${lastName} — Recurring Sunday Pickup`
+    : `🚗 ${firstName} ${lastName} — Sunday Pickup (${rideDate})`;
   const taskDesc =
     `## Ride Request\n\n` +
     `**Requester:** ${firstName} ${lastName}\n` +
@@ -835,9 +889,11 @@ document.getElementById('rideForm').addEventListener('submit', async (e) => {
     `**Pickup Address:** ${verifiedAddress}\n` +
     `**Distance from Church:** ${calculatedDistance} miles\n\n` +
     `**Ride Type:** Sunday Morning Pickup\n` +
-    `**Date:** ${rideDate}\n` +
+    `**Frequency:** ${frequencyLabel}\n` +
+    `**Starting Date:** ${rideDate}\n` +
     `**Passengers:** ${passengers}\n` +
     `**Mobility Needs:** ${mobilityLabel}\n\n` +
+    `${isRecurring ? '**⚠️ RECURRING RIDE — This member needs pickup EVERY Sunday until cancelled.**\n\n' : ''}` +
     `${notes ? `**Notes:** ${notes}\n\n` : ''}` +
     `---\n_Submitted via Book a Ride form_`;
 
@@ -891,56 +947,149 @@ document.getElementById('rideForm').addEventListener('submit', async (e) => {
     }
 
     let task;
-    try {
-      task = await clickupFetch(`/list/${LIST_ID}/task`, {
-        method: 'POST',
-        body: JSON.stringify({
-          name: taskName,
-          markdown_description: taskDesc,
-          due_date: dateTimestamp,
-          priority: mobility !== 'none' ? 2 : 3,
-          tags: [rideTypeLabel.toLowerCase().replace(' ', '-')],
-          notify_all: true,
-          custom_fields: customFields,
-        }),
+    const RECURRING_WEEKS = 48;
+
+    // Helper to create a single task
+    async function createTask(sundayDate, weekNum, useCustomFields) {
+      const dueDateTs = new Date(sundayDate + 'T08:00:00').getTime();
+      const sundayDisplay = new Date(sundayDate + 'T12:00:00').toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric'
       });
-    } catch (fieldErr) {
-      // Fallback: create task without custom fields if they cause issues
-      console.warn('Custom fields failed, creating task without them:', fieldErr);
-      task = await clickupFetch(`/list/${LIST_ID}/task`, {
+      const tName = isRecurring
+        ? '\uD83D\uDD04 ' + firstName + ' ' + lastName + ' \u2014 Sunday Pickup (' + sundayDate + ') [Week ' + weekNum + '/48]'
+        : '\uD83D\uDE97 ' + firstName + ' ' + lastName + ' \u2014 Sunday Pickup (' + sundayDate + ')';
+      const tDesc = '## Ride Request\n\n' +
+        '**Requester:** ' + firstName + ' ' + lastName + '\n' +
+        '**Email:** ' + email + '\n' +
+        '**Phone:** ' + phone + '\n\n' +
+        '**Pickup Address:** ' + verifiedAddress + '\n' +
+        '**Distance from Church:** ' + calculatedDistance + ' miles\n\n' +
+        '**Ride Type:** Sunday Morning Pickup\n' +
+        '**Frequency:** ' + frequencyLabel + '\n' +
+        '**Date:** ' + sundayDate + '\n' +
+        '**Passengers:** ' + passengers + '\n' +
+        '**Mobility Needs:** ' + mobilityLabel + '\n\n' +
+        (isRecurring ? '**\u26A0\uFE0F RECURRING RIDE \u2014 Week ' + weekNum + ' of 48.** 3 consecutive no-shows will cancel remaining rides.\n\n' : '') +
+        (notes ? '**Notes:** ' + notes + '\n\n' : '') +
+        '---\n_Submitted via Book a Ride form_';
+
+      const body = {
+        name: tName,
+        markdown_description: tDesc,
+        due_date: dueDateTs,
+        priority: mobility !== 'none' ? 2 : (isRecurring ? 2 : 3),
+        tags: isRecurring ? ['recurring', 'to-church'] : ['to-church'],
+        notify_all: false,
+      };
+      if (useCustomFields) body.custom_fields = customFields;
+      return clickupFetch('/list/' + LIST_ID + '/task', {
         method: 'POST',
-        body: JSON.stringify({
-          name: taskName,
-          markdown_description: taskDesc,
-          due_date: dateTimestamp,
-          priority: mobility !== 'none' ? 2 : 3,
-          tags: [rideTypeLabel.toLowerCase().replace(' ', '-')],
-          notify_all: true,
-        }),
+        body: JSON.stringify(body),
       });
     }
 
-    document.getElementById('formContainer').style.display = 'none';
-    document.getElementById('successScreen').classList.add('show');
+    if (isRecurring) {
+      // Create 48 tasks, one for each upcoming Sunday
+      // Show progress to user
+      document.getElementById('formContainer').style.display = 'none';
+      document.getElementById('successScreen').classList.add('show');
+      const rideDateDisplay = new Date(rideDate + 'T12:00:00').toLocaleDateString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+      });
+      const lastSunday = new Date(rideDate + 'T12:00:00');
+      lastSunday.setDate(lastSunday.getDate() + (47 * 7));
+      const lastDateDisplay = lastSunday.toLocaleDateString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+      });
 
-    // Show confirmation details
-    const rideDateDisplay = new Date(rideDate + 'T12:00:00').toLocaleDateString('en-US', {
-      weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
-    });
-    document.getElementById('confirmationDetails').innerHTML =
-      '<div style="border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:10px; font-weight:600; color:var(--text-dark); font-size:15px;">Your Ride Details</div>' +
-      '<div style="margin-bottom:6px;"><strong>Name:</strong> ' + firstName + ' ' + lastName + '</div>' +
-      '<div style="margin-bottom:6px;"><strong>Email:</strong> ' + email + '</div>' +
-      '<div style="margin-bottom:6px;"><strong>Phone:</strong> ' + phone + '</div>' +
-      '<div style="margin-bottom:6px;"><strong>Pickup Address:</strong> ' + verifiedAddress + '</div>' +
-      '<div style="margin-bottom:6px;"><strong>Sunday Date:</strong> ' + rideDateDisplay + '</div>' +
-      '<div style="margin-bottom:6px;"><strong>Passengers:</strong> ' + passengers + '</div>' +
-      '<div style="margin-bottom:6px;"><strong>Mobility Needs:</strong> ' + mobilityLabel + '</div>' +
-      (notes ? '<div style="margin-bottom:6px;"><strong>Notes:</strong> ' + notes + '</div>' : '') +
-      '<div style="border-top:1px solid var(--border); padding-top:10px; margin-top:10px; font-size:12px; color:var(--text-light); text-align:center;">Please screenshot this page for your records.</div>';
+      document.getElementById('confirmationDetails').innerHTML =
+        '<div style="border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:10px; font-weight:600; color:var(--text-dark); font-size:15px;">Your Ride Details</div>' +
+        '<div style="margin-bottom:6px;"><strong>Name:</strong> ' + firstName + ' ' + lastName + '</div>' +
+        '<div style="margin-bottom:6px;"><strong>Email:</strong> ' + email + '</div>' +
+        '<div style="margin-bottom:6px;"><strong>Phone:</strong> ' + phone + '</div>' +
+        '<div style="margin-bottom:6px;"><strong>Pickup Address:</strong> ' + verifiedAddress + '</div>' +
+        '<div style="margin-bottom:6px;"><strong>Frequency:</strong> Every Sunday (Recurring)</div>' +
+        '<div style="margin-bottom:6px;"><strong>Starting:</strong> ' + rideDateDisplay + '</div>' +
+        '<div style="margin-bottom:6px;"><strong>Through:</strong> ' + lastDateDisplay + '</div>' +
+        '<div style="margin-bottom:6px;"><strong>Total Rides:</strong> 48 Sundays</div>' +
+        '<div style="margin-bottom:6px;"><strong>Passengers:</strong> ' + passengers + '</div>' +
+        '<div style="margin-bottom:6px;"><strong>Mobility Needs:</strong> ' + mobilityLabel + '</div>' +
+        (notes ? '<div style="margin-bottom:6px;"><strong>Notes:</strong> ' + notes + '</div>' : '') +
+        '<div id="progressArea" style="border-top:1px solid var(--border); padding-top:10px; margin-top:10px;"><div style="font-size:12.5px; color:var(--gold); font-weight:600; margin-bottom:8px;">\uD83D\uDD04 Creating 48 Sunday ride requests...</div><div style="background:var(--border); border-radius:4px; height:8px; overflow:hidden;"><div id="progressBar" style="background:var(--gold); height:100%; width:0%; border-radius:4px; transition:width 0.3s;"></div></div><div id="progressText" style="font-size:11px; color:var(--text-light); margin-top:4px;">0 of 48</div></div>' +
+        '<div style="border-top:1px solid var(--border); padding-top:10px; margin-top:10px; font-size:11.5px; color:var(--red); font-weight:500;">\u26A0\uFE0F 3 consecutive no-shows will result in cancellation of remaining rides.</div>' +
+        '<div style="padding-top:6px; font-size:12px; color:var(--text-light); text-align:center;">Please screenshot this page for your records.</div>';
 
-    // Log task link for admin reference only
-    console.log('ClickUp Task:', task.id, task.url);
+      // Create tasks with rate limiting (ClickUp allows ~100 requests/min)
+      let created = 0;
+      let failed = 0;
+      const startDate = new Date(rideDate + 'T12:00:00');
+
+      for (let i = 0; i < RECURRING_WEEKS; i++) {
+        const sunday = new Date(startDate);
+        sunday.setDate(startDate.getDate() + (i * 7));
+        const sundayStr = sunday.toISOString().split('T')[0];
+
+        try {
+          await createTask(sundayStr, i + 1, customFields.length > 0);
+          created++;
+        } catch (err) {
+          // Try without custom fields
+          try {
+            await createTask(sundayStr, i + 1, false);
+            created++;
+          } catch (err2) {
+            failed++;
+            console.warn('Failed to create task for ' + sundayStr, err2);
+          }
+        }
+
+        // Update progress
+        const pct = Math.round(((i + 1) / RECURRING_WEEKS) * 100);
+        document.getElementById('progressBar').style.width = pct + '%';
+        document.getElementById('progressText').textContent = (i + 1) + ' of 48';
+
+        // Rate limiting: pause 700ms between requests
+        if (i < RECURRING_WEEKS - 1) {
+          await new Promise(r => setTimeout(r, 700));
+        }
+      }
+
+      // Show final status
+      document.getElementById('progressArea').innerHTML =
+        '<div style="font-size:12.5px; color:var(--green); font-weight:600;">\u2705 ' + created + ' Sunday rides created' + (failed > 0 ? ' (' + failed + ' failed)' : '') + '!</div>';
+
+      console.log('Recurring rides created:', created, 'failed:', failed);
+
+    } else {
+      // One-time ride: create single task
+      try {
+        task = await createTask(rideDate, 1, customFields.length > 0);
+      } catch (fieldErr) {
+        console.warn('Custom fields failed, creating task without them:', fieldErr);
+        task = await createTask(rideDate, 1, false);
+      }
+
+      document.getElementById('formContainer').style.display = 'none';
+      document.getElementById('successScreen').classList.add('show');
+
+      const rideDateDisplay = new Date(rideDate + 'T12:00:00').toLocaleDateString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+      });
+      document.getElementById('confirmationDetails').innerHTML =
+        '<div style="border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:10px; font-weight:600; color:var(--text-dark); font-size:15px;">Your Ride Details</div>' +
+        '<div style="margin-bottom:6px;"><strong>Name:</strong> ' + firstName + ' ' + lastName + '</div>' +
+        '<div style="margin-bottom:6px;"><strong>Email:</strong> ' + email + '</div>' +
+        '<div style="margin-bottom:6px;"><strong>Phone:</strong> ' + phone + '</div>' +
+        '<div style="margin-bottom:6px;"><strong>Pickup Address:</strong> ' + verifiedAddress + '</div>' +
+        '<div style="margin-bottom:6px;"><strong>Frequency:</strong> One Time</div>' +
+        '<div style="margin-bottom:6px;"><strong>Sunday Date:</strong> ' + rideDateDisplay + '</div>' +
+        '<div style="margin-bottom:6px;"><strong>Passengers:</strong> ' + passengers + '</div>' +
+        '<div style="margin-bottom:6px;"><strong>Mobility Needs:</strong> ' + mobilityLabel + '</div>' +
+        (notes ? '<div style="margin-bottom:6px;"><strong>Notes:</strong> ' + notes + '</div>' : '') +
+        '<div style="border-top:1px solid var(--border); padding-top:10px; margin-top:10px; font-size:12px; color:var(--text-light); text-align:center;">Please screenshot this page for your records.</div>';
+
+      console.log('ClickUp Task:', task.id, task.url);
+    }
 
   } catch (err) {
     alert(`Submission error: ${err.message}\nPlease try again or contact the church office.`);
@@ -961,6 +1110,16 @@ function resetForm() {
   document.getElementById('rideSection').style.display = 'none';
   document.getElementById('addressStatus').className = 'address-status';
   document.getElementById('addressStatus').innerHTML = '';
+  // Reset frequency toggle
+  const onceBtn = document.getElementById('freqOnce');
+  const recurBtn = document.getElementById('freqRecurring');
+  onceBtn.style.background = 'var(--gold-pale)';
+  onceBtn.style.borderColor = 'var(--gold)';
+  onceBtn.style.boxShadow = '0 0 0 3px rgba(184,150,46,0.12)';
+  recurBtn.style.background = 'var(--cream)';
+  recurBtn.style.borderColor = 'var(--border)';
+  recurBtn.style.boxShadow = 'none';
+  document.getElementById('recurringNote').style.display = 'none';
   verifiedAddress = null;
   calculatedDistance = null;
   window.scrollTo({ top: 0, behavior: 'smooth' });
