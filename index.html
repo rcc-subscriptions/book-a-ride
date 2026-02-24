@@ -734,64 +734,75 @@ document.addEventListener('click', (e) => {
 
 async function fetchSuggestions(query) {
   try {
-    // Maryland bounding box: SW(37.91,-79.49) to NE(39.72,-75.05)
-    // Use viewbox + bounded to restrict to Maryland area
+    // Photon API — built on OpenStreetMap, designed for autocomplete
+    // Bias results toward church location (Lanham, MD area)
     const params = new URLSearchParams({
-      format: 'json',
-      addressdetails: '1',
-      limit: '6',
-      countrycodes: 'us',
-      viewbox: '-79.49,37.91,-75.05,39.72',
-      bounded: '1',
       q: query,
+      lat: '38.9847',
+      lon: '-76.8545',
+      limit: '6',
+      lang: 'en',
+      osm_tag: 'place:house',
     });
-    const url = 'https://nominatim.openstreetmap.org/search?' + params.toString();
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'RCC-BookARide/1.0' }
-    });
-    const results = await res.json();
+    let url = 'https://photon.komoot.io/api/?' + params.toString();
+    let res = await fetch(url);
+    let data = await res.json();
+    let features = (data.features || []);
 
-    // Filter to only results that have a house number (actual addresses, not just cities/roads)
-    const addressResults = results.filter(r => {
-      const addr = r.address || {};
-      // Accept results in Maryland (or very close border areas)
-      const isMD = addr.state === 'Maryland' || addr.state_code === 'MD';
-      return isMD;
+    // If no house results, try without osm_tag filter
+    if (features.length === 0) {
+      const params2 = new URLSearchParams({
+        q: query,
+        lat: '38.9847',
+        lon: '-76.8545',
+        limit: '6',
+        lang: 'en',
+      });
+      url = 'https://photon.komoot.io/api/?' + params2.toString();
+      res = await fetch(url);
+      data = await res.json();
+      features = (data.features || []);
+    }
+
+    // Filter to Maryland only
+    const mdResults = features.filter(f => {
+      const p = f.properties || {};
+      return p.state === 'Maryland' && p.country === 'United States';
     });
 
     suggestionsDiv.innerHTML = '';
-    if (addressResults.length === 0) {
-      suggestionsDiv.innerHTML = '<div style="padding:10px 14px; font-size:12px; color:var(--text-light);">No Maryland addresses found. Try including street number and city.</div>';
+    if (mdResults.length === 0) {
+      suggestionsDiv.innerHTML = '<div style="padding:10px 14px; font-size:12px; color:var(--text-light);">No Maryland addresses found. Try adding a street number.</div>';
       suggestionsDiv.style.display = 'block';
       return;
     }
 
-    addressResults.forEach(r => {
+    mdResults.forEach(f => {
+      const p = f.properties || {};
+      const coords = f.geometry && f.geometry.coordinates;
       const div = document.createElement('div');
       div.style.cssText = 'padding:10px 14px; cursor:pointer; font-size:13px; border-bottom:1px solid var(--border); transition:background 0.15s;';
       div.onmouseenter = () => div.style.background = 'var(--gold-pale)';
       div.onmouseleave = () => div.style.background = 'white';
 
-      // Build clean display address
-      const addr = r.address || {};
-      const houseNum = addr.house_number || '';
-      const road = addr.road || '';
-      const city = addr.city || addr.town || addr.village || addr.hamlet || addr.county || '';
-      const zip = addr.postcode || '';
-      const displayAddr = [houseNum, road].filter(Boolean).join(' ');
+      const houseNum = p.housenumber || '';
+      const street = p.street || p.name || '';
+      const city = p.city || p.town || p.village || p.district || '';
+      const zip = p.postcode || '';
+      const displayAddr = [houseNum, street].filter(Boolean).join(' ');
       const displayLine2 = [city, 'MD', zip].filter(Boolean).join(', ');
 
-      div.innerHTML = '<div style="font-weight:500; color:var(--text-dark);">' + (displayAddr || r.display_name.split(',')[0]) + '</div>' +
-        '<div style="font-size:11px; color:var(--text-light);">' + displayLine2 + '</div>';
+      div.innerHTML = '<div style="font-weight:500; color:var(--text-dark);">' + (displayAddr || p.name || '') + '</div>' +
+        (displayLine2 ? '<div style="font-size:11px; color:var(--text-light);">' + displayLine2 + '</div>' : '');
 
       div.addEventListener('click', () => {
         const fullAddr = displayAddr + ', ' + displayLine2;
         addressInput.value = fullAddr;
-        selectedLat = parseFloat(r.lat);
-        selectedLng = parseFloat(r.lon);
+        if (coords) {
+          selectedLat = coords[1]; // Photon returns [lng, lat]
+          selectedLng = coords[0];
+        }
         suggestionsDiv.style.display = 'none';
-
-        // Auto-verify on selection
         verifySelectedAddress(fullAddr, selectedLat, selectedLng);
       });
 
