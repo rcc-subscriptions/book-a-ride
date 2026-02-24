@@ -280,6 +280,37 @@
   @keyframes cardIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Google Places Autocomplete Styling */
+  .pac-container {
+    font-family: 'Outfit', sans-serif;
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    margin-top: -1px;
+    z-index: 10000;
+  }
+  .pac-item {
+    padding: 10px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0ede4;
+    line-height: 1.5;
+  }
+  .pac-item:hover, .pac-item-selected {
+    background: var(--gold-pale, #F5EDD4);
+  }
+  .pac-item-query {
+    font-weight: 500;
+    color: #1B2040;
+    font-size: 13.5px;
+  }
+  .pac-icon { display: none; }
+  .pac-item span:last-child {
+    font-size: 11.5px;
+    color: #7A7565;
+  }
 </style>
 </head>
 <body>
@@ -351,10 +382,9 @@
 
         <div class="field" style="position:relative;">
           <label for="addressInput">Home Address <span class="req">*</span></label>
-          <input type="text" id="addressInput" placeholder="Start typing your address..." required autocomplete="off">
+          <input type="text" id="addressInput" placeholder="Start typing your address..." required autocomplete="new-password">
           <input type="hidden" id="state" value="MD">
-          <div id="addressSuggestions" style="display:none; position:absolute; left:0; right:0; top:100%; background:white; border:1px solid var(--border); border-top:none; border-radius:0 0 var(--radius) var(--radius); box-shadow:0 6px 20px rgba(0,0,0,0.12); z-index:100; max-height:220px; overflow-y:auto;"></div>
-          <p style="font-size:11px; color:var(--text-light); margin-top:4px;">Only Maryland addresses are supported</p>
+          <p style="font-size:11px; color:var(--text-light); margin-top:4px;">Maryland addresses only (within 15 miles of church)</p>
         </div>
 
         <div class="field-row">
@@ -700,119 +730,17 @@ let calculatedDistance = null;
 let selectedLat = null;
 let selectedLng = null;
 
-// ── Address Autocomplete (Nominatim, Maryland only) ──
-let debounceTimer = null;
-const addressInput = document.getElementById('addressInput');
-const suggestionsDiv = document.getElementById('addressSuggestions');
-
-addressInput.addEventListener('input', () => {
-  clearTimeout(debounceTimer);
-  const query = addressInput.value.trim();
-  // Reset verification when user changes address
+// Google Places Autocomplete is initialized in a separate script block
+// at the bottom of the page via the &callback=initGoogleMaps parameter.
+// Reset verification when user manually edits the field
+document.getElementById('addressInput').addEventListener('input', function() {
   verifiedAddress = null;
   selectedLat = null;
   selectedLng = null;
   document.getElementById('rideSection').style.display = 'none';
   document.getElementById('addressStatus').className = 'address-status';
   document.getElementById('addressStatus').innerHTML = '';
-  if (query.length < 3) {
-    suggestionsDiv.style.display = 'none';
-    return;
-  }
-  debounceTimer = setTimeout(() => fetchSuggestions(query), 300);
 });
-
-addressInput.addEventListener('focus', () => {
-  if (suggestionsDiv.children.length > 0) suggestionsDiv.style.display = 'block';
-});
-
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('#addressInput') && !e.target.closest('#addressSuggestions')) {
-    suggestionsDiv.style.display = 'none';
-  }
-});
-
-async function fetchSuggestions(query) {
-  try {
-    // Photon API — built on OpenStreetMap, designed for autocomplete
-    // Bias results toward church location (Lanham, MD area)
-    const params = new URLSearchParams({
-      q: query,
-      lat: '38.9847',
-      lon: '-76.8545',
-      limit: '6',
-      lang: 'en',
-      osm_tag: 'place:house',
-    });
-    let url = 'https://photon.komoot.io/api/?' + params.toString();
-    let res = await fetch(url);
-    let data = await res.json();
-    let features = (data.features || []);
-
-    // If no house results, try without osm_tag filter
-    if (features.length === 0) {
-      const params2 = new URLSearchParams({
-        q: query,
-        lat: '38.9847',
-        lon: '-76.8545',
-        limit: '6',
-        lang: 'en',
-      });
-      url = 'https://photon.komoot.io/api/?' + params2.toString();
-      res = await fetch(url);
-      data = await res.json();
-      features = (data.features || []);
-    }
-
-    // Filter to Maryland only
-    const mdResults = features.filter(f => {
-      const p = f.properties || {};
-      return p.state === 'Maryland' && p.country === 'United States';
-    });
-
-    suggestionsDiv.innerHTML = '';
-    if (mdResults.length === 0) {
-      suggestionsDiv.innerHTML = '<div style="padding:10px 14px; font-size:12px; color:var(--text-light);">No Maryland addresses found. Try adding a street number.</div>';
-      suggestionsDiv.style.display = 'block';
-      return;
-    }
-
-    mdResults.forEach(f => {
-      const p = f.properties || {};
-      const coords = f.geometry && f.geometry.coordinates;
-      const div = document.createElement('div');
-      div.style.cssText = 'padding:10px 14px; cursor:pointer; font-size:13px; border-bottom:1px solid var(--border); transition:background 0.15s;';
-      div.onmouseenter = () => div.style.background = 'var(--gold-pale)';
-      div.onmouseleave = () => div.style.background = 'white';
-
-      const houseNum = p.housenumber || '';
-      const street = p.street || p.name || '';
-      const city = p.city || p.town || p.village || p.district || '';
-      const zip = p.postcode || '';
-      const displayAddr = [houseNum, street].filter(Boolean).join(' ');
-      const displayLine2 = [city, 'MD', zip].filter(Boolean).join(', ');
-
-      div.innerHTML = '<div style="font-weight:500; color:var(--text-dark);">' + (displayAddr || p.name || '') + '</div>' +
-        (displayLine2 ? '<div style="font-size:11px; color:var(--text-light);">' + displayLine2 + '</div>' : '');
-
-      div.addEventListener('click', () => {
-        const fullAddr = displayAddr + ', ' + displayLine2;
-        addressInput.value = fullAddr;
-        if (coords) {
-          selectedLat = coords[1]; // Photon returns [lng, lat]
-          selectedLng = coords[0];
-        }
-        suggestionsDiv.style.display = 'none';
-        verifySelectedAddress(fullAddr, selectedLat, selectedLng);
-      });
-
-      suggestionsDiv.appendChild(div);
-    });
-    suggestionsDiv.style.display = 'block';
-  } catch (err) {
-    console.warn('Autocomplete error:', err);
-  }
-}
 
 function verifySelectedAddress(fullAddress, lat, lng) {
   document.getElementById('verifyBtn').classList.add('loading');
@@ -1216,8 +1144,6 @@ function resetForm() {
   document.getElementById('addressStatus').className = 'address-status';
   document.getElementById('addressStatus').innerHTML = '';
   document.getElementById('addressInput').value = '';
-  document.getElementById('addressSuggestions').style.display = 'none';
-  document.getElementById('addressSuggestions').innerHTML = '';
   // Reset frequency toggle
   const onceBtn = document.getElementById('freqOnce');
   const recurBtn = document.getElementById('freqRecurring');
@@ -1240,6 +1166,63 @@ function resetForm() {
 // ═════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => { setupWorkspace(); });
 </script>
+
+<script>
+// Google Maps callback — called automatically when the API finishes loading
+function initGoogleMaps() {
+  var input = document.getElementById('addressInput');
+  if (!input) return;
+
+  var ac = new google.maps.places.Autocomplete(input, {
+    componentRestrictions: { country: 'us' },
+    types: ['address'],
+    fields: ['formatted_address', 'geometry', 'address_components'],
+  });
+
+  // Bias toward church area
+  var center = new google.maps.LatLng(38.9847, -76.8545);
+  ac.setBounds(new google.maps.Circle({ center: center, radius: 40000 }).getBounds());
+
+  ac.addListener('place_changed', function() {
+    var place = ac.getPlace();
+    if (!place || !place.geometry) {
+      showAddressStatus('error', 'Please select an address from the dropdown.');
+      return;
+    }
+
+    // Only allow Maryland
+    var comps = place.address_components || [];
+    var stateComp = null;
+    for (var i = 0; i < comps.length; i++) {
+      if (comps[i].types.indexOf('administrative_area_level_1') !== -1) {
+        stateComp = comps[i];
+        break;
+      }
+    }
+    var st = stateComp ? stateComp.short_name : '';
+
+    if (st !== 'MD') {
+      showAddressStatus('error', 'Only Maryland addresses are accepted. Your address is in ' + (stateComp ? stateComp.long_name : 'another state') + '.');
+      verifiedAddress = null;
+      document.getElementById('rideSection').style.display = 'none';
+      return;
+    }
+
+    selectedLat = place.geometry.location.lat();
+    selectedLng = place.geometry.location.lng();
+    input.value = place.formatted_address;
+    verifySelectedAddress(place.formatted_address, selectedLat, selectedLng);
+  });
+
+  // Prevent Enter from submitting form while dropdown is open
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') e.preventDefault();
+  });
+
+  console.log('Google Places Autocomplete ready');
+}
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD6aFSYheMeqE7NUs3zZolyxPojLQuTqg4&libraries=places&callback=initGoogleMaps"></script>
 
 </body>
 </html>
