@@ -161,13 +161,12 @@
 
   <!-- STEP 5: DRIVER LINKS -->
   <div class="panel" id="trackingPanel" style="display:none;">
-    <div class="panel-header">
-      <h2>📱 Driver Links</h2>
-      <span style="font-size:12px;color:var(--text-light);">Send each driver their link</span>
+    <div style="background:var(--gold);color:white;padding:16px 20px;font-size:16px;font-weight:700;text-align:center;">
+      📱 SEND THESE LINKS TO YOUR DRIVERS
     </div>
     <div class="panel-body">
-      <p style="font-size:13px;color:var(--text-light);margin-bottom:14px;">Each driver opens their link on their phone to see their route, share GPS, and mark pickups. Tap "Copy" or "Text" to send.</p>
-      <div id="driverLinksContainer"></div>
+      <p style="font-size:13px;color:var(--text-light);margin-bottom:14px;">Each driver opens their link on their phone to see their route, share GPS, and mark pickups.</p>
+      <div id="driverLinksContainer"><p style="color:var(--text-light);">Generating links...</p></div>
     </div>
   </div>
 
@@ -292,7 +291,12 @@ async function apiFetch(path, opts) {
     headers: { 'Content-Type': 'application/json' },
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   });
-  return res.json();
+  var text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    throw new Error('API returned invalid JSON (status ' + res.status + '): ' + text.substring(0, 200));
+  }
 }
 
 // ═════════════════════════════════════════════════════
@@ -304,11 +308,60 @@ async function loadRides() {
   btn.innerHTML = '<span class="spinner"></span> Loading...';
 
   try {
+    // Step 1: Check if worker is reachable
+    var testRes = await fetch(CONFIG.PROXY + '/');
+    if (!testRes.ok) throw new Error('Worker not reachable (status ' + testRes.status + ')');
+
+    // Step 2: Get list ID
     var listId = localStorage.getItem('bookARide_listId');
     if (!listId) {
-      document.getElementById('ridesBody').innerHTML = '<div class="empty-state"><p style="color:var(--red);">List ID not found. Open the Book a Ride form first to set up the workspace, then come back here.</p></div>';
+      // Try to find it from ClickUp
+      try {
+        var teams = await apiFetch('/team');
+        if (teams.teams && teams.teams.length > 0) {
+          var teamId = teams.teams[0].id;
+          var spaces = await apiFetch('/team/' + teamId + '/space?archived=false');
+          for (var si = 0; si < (spaces.spaces || []).length; si++) {
+            var sp = spaces.spaces[si];
+            if (sp.name && sp.name.toLowerCase().indexOf('transport') !== -1) {
+              var folders = await apiFetch('/space/' + sp.id + '/folder?archived=false');
+              for (var fi = 0; fi < (folders.folders || []).length; fi++) {
+                var folder = folders.folders[fi];
+                for (var li = 0; li < (folder.lists || []).length; li++) {
+                  var list = folder.lists[li];
+                  if (list.name && list.name.toLowerCase().indexOf('ride') !== -1) {
+                    listId = list.id;
+                    localStorage.setItem('bookARide_listId', listId);
+                    toast('✅ Found ClickUp list: ' + list.name);
+                    break;
+                  }
+                }
+                if (listId) break;
+              }
+            }
+            if (listId) break;
+          }
+        }
+      } catch (e) {
+        console.warn('Auto-find failed:', e);
+      }
+    }
+
+    if (!listId) {
+      document.getElementById('ridesBody').innerHTML = '<div class="empty-state">' +
+        '<p style="color:var(--red);margin-bottom:12px;font-weight:600;">ClickUp List ID not found</p>' +
+        '<p style="font-size:13px;margin-bottom:12px;">Go to ClickUp → open your Ride Requests list → copy the list ID from the URL, then paste below:</p>' +
+        '<div style="display:flex;gap:8px;">' +
+          '<input type="text" id="manualListId" placeholder="e.g. 901234567890" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;font-size:14px;">' +
+          '<button class="btn btn-primary" onclick="saveListIdAndLoad()">Save & Load</button>' +
+        '</div>' +
+        '<p style="font-size:11px;color:var(--text-light);margin-top:8px;">Or open the booking form (bookaride.redeemerschapel.org) on this device first — it saves the ID automatically.</p>' +
+      '</div>';
       return;
     }
+
+    // Step 3: Fetch tasks
+    document.getElementById('ridesBody').innerHTML = '<div style="text-align:center;padding:20px;"><span class="spinner"></span><br><span style="font-size:12px;color:var(--text-light);">Fetching from ClickUp... (List: ' + listId + ')</span></div>';
 
     var sundayStart = new Date(sundayStr + 'T00:00:00').getTime();
     var sundayEnd = new Date(sundayStr + 'T23:59:59').getTime();
@@ -318,6 +371,7 @@ async function loadRides() {
     var hasMore = true;
     while (hasMore && page < 5) {
       var data = await apiFetch('/list/' + listId + '/task?due_date_gt=' + sundayStart + '&due_date_lt=' + sundayEnd + '&include_closed=false&page=' + page);
+      if (data.err) throw new Error('ClickUp error: ' + data.err);
       var tasks = data.tasks || [];
       allTasks = allTasks.concat(tasks);
       hasMore = tasks.length === 100;
@@ -330,7 +384,12 @@ async function loadRides() {
     });
 
     if (rides.length === 0) {
-      document.getElementById('ridesBody').innerHTML = '<div class="empty-state"><p>No ride requests found for this Sunday.</p></div>';
+      document.getElementById('ridesBody').innerHTML = '<div class="empty-state">' +
+        '<p>No rides found for <strong>' + sundayStr + '</strong></p>' +
+        '<p style="font-size:12px;color:var(--text-light);margin-top:8px;">Total tasks in ClickUp: ' + allTasks.length + ' (filtered out cancelled/completed)</p>' +
+        '<p style="font-size:12px;color:var(--text-light);margin-top:4px;">List ID: ' + listId + '</p>' +
+        '<p style="font-size:12px;margin-top:8px;"><a href="#" onclick="localStorage.removeItem(\'bookARide_listId\');loadRides();return false;" style="color:var(--gold);">Try a different list ID</a></p>' +
+      '</div>';
       return;
     }
 
@@ -338,13 +397,30 @@ async function loadRides() {
     renderRidesList();
     document.getElementById('driversPanel').style.display = '';
     document.getElementById('assignPanel').style.display = '';
-    toast('✅ Loaded ' + rides.length + ' rides');
+    toast('✅ Loaded ' + rides.length + ' rides for ' + sundayStr);
   } catch (err) {
-    document.getElementById('ridesBody').innerHTML = '<div class="empty-state"><p style="color:var(--red);">Error: ' + err.message + '</p></div>';
+    document.getElementById('ridesBody').innerHTML = '<div class="empty-state">' +
+      '<p style="color:var(--red);font-weight:600;">Error loading rides</p>' +
+      '<p style="font-size:13px;margin-top:8px;word-break:break-word;">' + err.message + '</p>' +
+      '<div style="font-size:12px;color:var(--text-light);margin-top:12px;padding:10px;background:var(--cream);border-radius:var(--radius);">' +
+        '<strong>Troubleshooting:</strong><br>' +
+        '1. Is the Worker deployed? Visit <a href="' + CONFIG.PROXY + '/" target="_blank">' + CONFIG.PROXY + '</a><br>' +
+        '2. Is the ClickUp API token valid? Check Worker secrets<br>' +
+        '3. Is the list ID correct? <a href="#" onclick="localStorage.removeItem(\'bookARide_listId\');loadRides();return false;">Reset list ID</a>' +
+      '</div>' +
+    '</div>';
   } finally {
     btn.disabled = false;
     btn.innerHTML = 'Reload Rides';
   }
+}
+
+function saveListIdAndLoad() {
+  var id = document.getElementById('manualListId').value.trim();
+  if (!id) return;
+  localStorage.setItem('bookARide_listId', id);
+  toast('✅ List ID saved!');
+  loadRides();
 }
 
 function parseRide(task) {
@@ -619,6 +695,14 @@ async function generateRoutes() {
     });
 
     detailsHtml += '<div style="padding:10px 14px;background:var(--green-bg);border-radius:var(--radius);font-size:13px;margin-top:8px;"><strong>🏛️ Return:</strong> ' + CONFIG.CHURCH_ADDRESS + '</div>';
+
+    // Driver link inline - right in the route details
+    detailsHtml += '<div style="margin-top:12px;padding:14px;background:var(--gold-pale);border:2px solid var(--gold);border-radius:var(--radius);">' +
+      '<div style="font-weight:700;font-size:14px;color:var(--navy);margin-bottom:8px;">📱 Send Route to ' + driver.name + '</div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;" id="driver-link-area-' + di + '"></div>' +
+      '<input type="hidden" class="driver-link-data" data-driver-index="' + di + '" data-driver-name="' + driver.name.replace(/"/g, '&quot;') + '" data-driver-color="' + driver.color + '">' +
+    '</div>';
+
     detailsHtml += '</div>';
   }
 
@@ -630,33 +714,47 @@ async function generateRoutes() {
   document.getElementById('routeTabs').innerHTML = tabsHtml;
   document.getElementById('routeDetails').innerHTML = detailsHtml;
 
-  // Build driver info for command center
-  var driverInfo = allRouteData.map(function(rd) {
-    return {
-      name: rd.driver.name,
-      color: rd.driver.color,
-      stopCount: rd.stops.length,
-      totalMiles: rd.totalMiles,
-      totalMinutes: rd.totalMinutes,
-      stops: rd.stops.map(function(s) { return { name: s.name, address: s.address }; }),
-    };
-  });
-
-  // Create tracking session on server (includes driver info for command center)
-  await apiFetch('/tracking/session', {
-    method: 'POST',
-    body: { sessionId: trackingSessionId, riders: allRiderInfo, drivers: driverInfo },
-  });
-
-  // Update ClickUp + Send "Driver Assigned" SMS
-  await updateClickUpAndNotify(allRouteData);
-
-  // Generate driver links
-  generateDriverLinks();
-
-  btn.innerHTML = '✅ Routes Generated & Riders Notified';
-  toast('✅ Routes generated! Send driver links below.');
+  // Generate driver links FIRST (so admin always sees them even if server calls are slow/fail)
+  try {
+    generateDriverLinks();
+  } catch (linkErr) {
+    console.error('Driver link generation failed:', linkErr);
+    document.getElementById('driverLinksContainer').innerHTML =
+      '<div style="padding:14px;color:var(--red);background:#fde8e8;border-radius:var(--radius);">' +
+      '<strong>Error generating driver links:</strong> ' + linkErr.message + '</div>';
+  }
+  document.getElementById('trackingPanel').style.display = '';
+  btn.innerHTML = '✅ Routes Generated! Send links below ↓';
   document.getElementById('trackingPanel').scrollIntoView({ behavior: 'smooth' });
+
+  // Now do server-side updates in background (non-blocking)
+  try {
+    // Build driver info for command center
+    var driverInfo = allRouteData.map(function(rd) {
+      return {
+        name: rd.driver.name,
+        color: rd.driver.color,
+        stopCount: rd.stops.length,
+        totalMiles: rd.totalMiles,
+        totalMinutes: rd.totalMinutes,
+        stops: rd.stops.map(function(s) { return { name: s.name, address: s.address }; }),
+      };
+    });
+
+    // Create tracking session on server (includes driver info for command center)
+    await apiFetch('/tracking/session', {
+      method: 'POST',
+      body: { sessionId: trackingSessionId, riders: allRiderInfo, drivers: driverInfo },
+    });
+
+    // Update ClickUp + Send "Driver Assigned" SMS
+    await updateClickUpAndNotify(allRouteData);
+
+    toast('✅ Riders notified via SMS! Now send driver links.');
+  } catch (err) {
+    console.warn('Server updates failed (links still work):', err);
+    toast('⚠️ Routes ready! SMS/ClickUp may have failed — check server.');
+  }
 }
 
 function buildDriverLink(routeData) {
@@ -671,63 +769,55 @@ function buildDriverLink(routeData) {
 }
 
 function generateDriverLinks() {
-  var html = '';
+  if (allRouteData.length === 0) {
+    document.getElementById('driverLinksContainer').innerHTML = '<p style="color:var(--red);">No routes generated.</p>';
+    return;
+  }
+
+  var panelHtml = '';
+
   allRouteData.forEach(function(rd, i) {
     var link = buildDriverLink(rd);
-    var msgText = 'RCC Transportation — ' + rd.driver.name + ', here is your pickup route for this Sunday (' + rd.stops.length + ' stops, ' + rd.totalMiles + ' mi):\n\n' + link;
-    var whatsappLink = 'https://wa.me/?text=' + encodeURIComponent(msgText);
-    var smsLink = 'sms:?&body=' + encodeURIComponent(msgText);
+    var msgText = 'RCC Transportation — ' + rd.driver.name + ', here is your pickup route for this Sunday (' + rd.stops.length + ' stops):\n\n' + link;
+    var whatsappUrl = 'https://wa.me/?text=' + encodeURIComponent(msgText);
+    var smsUrl = 'sms:?&body=' + encodeURIComponent(msgText);
 
-    // List stop names for preview
-    var stopNames = rd.stops.map(function(s, si) { return (si + 1) + '. ' + s.name; }).join('\n');
+    var buttonsHtml =
+      '<button onclick="copyLink(' + i + ')" style="padding:10px 14px;background:#B8962E;color:white;border:none;border-radius:8px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;flex:1;min-width:120px;">📋 Copy Link</button>' +
+      '<a href="' + whatsappUrl + '" target="_blank" style="padding:10px 14px;background:#27864A;color:white;border:none;border-radius:8px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;text-decoration:none;text-align:center;flex:1;min-width:120px;display:inline-block;">💬 WhatsApp</a>' +
+      '<a href="' + smsUrl + '" style="padding:10px 14px;background:#1B2040;color:white;border:none;border-radius:8px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;text-decoration:none;text-align:center;flex:1;min-width:120px;display:inline-block;">📱 Text</a>' +
+      '<input type="hidden" id="dlink-' + i + '" value="' + link.replace(/"/g, '&quot;') + '">';
 
-    html += '<div style="padding:16px;border:1.5px solid var(--border);border-left:4px solid ' + rd.driver.color + ';border-radius:var(--radius);margin-bottom:14px;background:white;">' +
+    // Populate inline area in route details
+    var inlineArea = document.getElementById('driver-link-area-' + rd.driverIndex);
+    if (inlineArea) {
+      inlineArea.innerHTML = buttonsHtml;
+    }
 
-      // Driver header
-      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">' +
-        '<span class="color-dot" style="background:' + rd.driver.color + ';"></span>' +
+    // Also build panel version
+    var stopNames = rd.stops.map(function(s, si) { return (si + 1) + '. ' + s.name; }).join('<br>');
+    panelHtml += '<div style="padding:16px;border:2px solid #e0ddd0;border-left:5px solid ' + rd.driver.color + ';border-radius:10px;margin-bottom:14px;background:white;">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">' +
+        '<div style="width:14px;height:14px;border-radius:50%;background:' + rd.driver.color + ';flex-shrink:0;"></div>' +
         '<strong style="font-size:15px;">' + rd.driver.name + '</strong>' +
-        '<span style="font-size:12px;color:var(--text-light);margin-left:auto;">' + rd.stops.length + ' stops · ' + rd.totalMiles + ' mi · ~' + rd.totalMinutes + ' min</span>' +
+        '<span style="font-size:12px;color:#7A7565;margin-left:auto;">' + rd.stops.length + ' stops · ' + rd.totalMiles + ' mi</span>' +
       '</div>' +
-
-      // Stop preview
-      '<div style="background:var(--cream);padding:10px 12px;border-radius:8px;margin-bottom:12px;font-size:12px;color:var(--text-mid);white-space:pre-line;line-height:1.6;">' + stopNames + '</div>' +
-
-      // Action buttons - large and clear
-      '<div style="display:flex;flex-direction:column;gap:8px;">' +
-        '<div style="display:flex;gap:8px;">' +
-          '<button class="btn btn-primary" onclick="copyDriverLink(' + i + ')" style="flex:1;padding:12px;">📋 Copy Link</button>' +
-          '<button class="btn btn-navy" onclick="shareDriverLink(' + i + ', \'' + rd.driver.name.replace(/'/g, "\\'") + '\')" style="flex:1;padding:12px;">📤 Share</button>' +
-        '</div>' +
-        '<div style="display:flex;gap:8px;">' +
-          '<a href="' + whatsappLink + '" target="_blank" class="btn btn-green" style="flex:1;padding:12px;text-decoration:none;text-align:center;">💬 WhatsApp</a>' +
-          '<a href="' + smsLink + '" class="btn btn-outline" style="flex:1;padding:12px;text-decoration:none;text-align:center;">📱 Text Message</a>' +
-        '</div>' +
-        '<a href="' + link + '" target="_blank" style="display:block;text-align:center;font-size:12px;color:var(--gold);margin-top:4px;">🔗 Preview driver\'s page</a>' +
-      '</div>' +
-
-      '<input type="hidden" id="driver-link-' + i + '" value="' + link.replace(/"/g, '&quot;') + '">' +
+      '<div style="font-size:12px;color:#7A7565;padding:8px;background:#FDFAF3;border-radius:6px;margin-bottom:10px;line-height:1.6;">' + stopNames + '</div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;">' + buttonsHtml + '</div>' +
     '</div>';
   });
-  document.getElementById('driverLinksContainer').innerHTML = html;
+
+  document.getElementById('driverLinksContainer').innerHTML = panelHtml;
 }
 
-function copyDriverLink(index) {
-  var link = document.getElementById('driver-link-' + index).value;
-  navigator.clipboard.writeText(link).then(function() { toast('📋 Link copied! Paste it to your driver.'); });
-}
-
-function shareDriverLink(index, driverName) {
-  var link = document.getElementById('driver-link-' + index).value;
-  var text = 'RCC Transportation — ' + driverName + ', here is your Sunday pickup route:';
-
-  if (navigator.share) {
-    navigator.share({ title: 'Pickup Route — ' + driverName, text: text, url: link })
-      .catch(function() { /* user cancelled */ });
-  } else {
-    // Fallback: copy to clipboard
-    navigator.clipboard.writeText(text + '\n' + link).then(function() {
-      toast('📋 Copied! Share button not supported — link copied instead.');
+function copyLink(index) {
+  var input = document.getElementById('dlink-' + index);
+  if (input) {
+    navigator.clipboard.writeText(input.value).then(function() {
+      toast('📋 Link copied! Send it to your driver.');
+    }).catch(function() {
+      // Fallback for older browsers
+      prompt('Copy this link:', input.value);
     });
   }
 }
@@ -807,8 +897,6 @@ async function updateClickUpAndNotify(routeData) {
       }
     }
   }
-}
-
 }
 </script>
 
