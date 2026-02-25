@@ -3,80 +3,171 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Your Route — RCC Transportation</title>
+<title>Driver Dashboard — RCC Transportation</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{--gold:#B8962E;--gold-light:#D4B44A;--gold-pale:#F5EDD4;--navy:#1B2040;--green:#27864A;--green-bg:#E8F5ED;--red:#C0392B;--border:#e0ddd0;--cream:#FDFAF3;--text-dark:#1B2040;--text-light:#7A7565;--radius:10px;}
+  :root {
+    --gold:#B8962E; --gold-light:#D4B44A; --gold-pale:#F5EDD4;
+    --navy:#1B2040; --green:#27864A; --green-bg:#E8F5ED;
+    --red:#C0392B; --border:#e0ddd0; --cream:#FDFAF3;
+    --text-dark:#1B2040; --text-mid:#4A4637; --text-light:#7A7565;
+    --radius:10px;
+  }
   *{margin:0;padding:0;box-sizing:border-box;}
   body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--text-dark);min-height:100vh;}
-  .header{background:var(--navy);color:white;padding:16px 20px;}
+  .header{background:var(--navy);color:white;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
   .header h1{font-size:18px;font-weight:600;}
-  .header .sub{font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px;}
-  .header .driver-badge{display:inline-block;background:var(--gold);color:var(--navy);padding:4px 12px;border-radius:16px;font-size:12px;font-weight:700;margin-top:8px;}
-  .container{max-width:600px;margin:0 auto;padding:16px;}
-  .panel{background:white;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
-  .panel-head{padding:14px 16px;border-bottom:1px solid var(--border);font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:space-between;}
-  .panel-body{padding:16px;}
-  .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border:none;border-radius:var(--radius);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;transition:all 0.2s;width:100%;justify-content:center;}
-  .btn-green{background:var(--green);color:white;} .btn-green:hover{background:#2ea055;}
+  .header .subtitle{font-size:12px;color:rgba(255,255,255,0.6);}
+  .header .date-badge{background:var(--gold);color:var(--navy);padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;}
+  .container{max-width:1200px;margin:0 auto;padding:20px;}
+  .panel{background:white;border-radius:var(--radius);border:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,0.04);margin-bottom:20px;overflow:hidden;}
+  .panel-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .panel-header h2{font-size:16px;font-weight:600;}
+  .panel-body{padding:20px;}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border:none;border-radius:var(--radius);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;transition:all 0.2s;}
+  .btn-primary{background:var(--gold);color:white;} .btn-primary:hover{background:var(--gold-light);}
   .btn-navy{background:var(--navy);color:white;} .btn-navy:hover{background:#2a3060;}
+  .btn-green{background:var(--green);color:white;} .btn-green:hover{background:#2ea055;}
   .btn-red{background:var(--red);color:white;} .btn-red:hover{background:#e74c3c;}
-  .btn-gold{background:var(--gold);color:white;} .btn-gold:hover{background:var(--gold-light);}
+  .btn-outline{background:white;color:var(--navy);border:1.5px solid var(--border);} .btn-outline:hover{border-color:var(--gold);background:var(--gold-pale);}
   .btn:disabled{opacity:0.5;cursor:not-allowed;}
-  .btn-sm{width:auto;padding:7px 14px;font-size:12px;}
-  #map{width:100%;height:300px;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:14px;}
-  .stop-card{border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;transition:all 0.2s;}
-  .stop-card.picked{opacity:0.45;border-left:4px solid var(--green);}
-  .stop-num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;color:white;font-size:11px;font-weight:700;margin-right:8px;flex-shrink:0;}
-  .stop-name{font-weight:600;font-size:14px;}
-  .stop-addr{font-size:12px;color:var(--text-light);margin-top:2px;}
-  .stop-meta{font-size:11px;color:var(--text-light);margin-top:2px;}
-  .stop-actions{margin-top:8px;display:flex;gap:8px;}
-  .status-bar{padding:10px 14px;border-radius:var(--radius);font-size:13px;margin-bottom:14px;text-align:center;}
-  .status-live{background:var(--green-bg);color:var(--green);}
-  .status-off{background:#f5f3ec;color:var(--text-light);}
-  .toast{position:fixed;bottom:16px;left:16px;right:16px;background:var(--navy);color:white;padding:12px 20px;border-radius:var(--radius);font-size:13px;text-align:center;z-index:9999;opacity:0;transition:opacity 0.3s;pointer-events:none;}
-  .toast.show{opacity:1;}
-  .spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;}
+  .btn-sm{padding:6px 12px;font-size:12px;}
+  .ride-card{border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:14px;transition:all 0.2s;cursor:pointer;}
+  .ride-card:hover{border-color:var(--gold);box-shadow:0 2px 8px rgba(184,150,46,0.1);}
+  .ride-card.selected{border-color:var(--gold);background:var(--gold-pale);}
+  .ride-card.assigned{border-left:4px solid var(--green);}
+  .ride-card .ride-info{flex:1;min-width:0;}
+  .ride-card .ride-name{font-weight:600;font-size:14px;}
+  .ride-card .ride-addr{font-size:12px;color:var(--text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ride-card .ride-meta{font-size:11px;color:var(--text-light);margin-top:2px;}
+  .ride-badge{font-size:10px;font-weight:600;padding:3px 8px;border-radius:10px;white-space:nowrap;}
+  .badge-confirmed{background:var(--green-bg);color:var(--green);}
+  .badge-submitted{background:#FFF3E0;color:#E65100;}
+  .driver-row{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--gold-pale);border-radius:var(--radius);margin-bottom:10px;}
+  .driver-row .driver-name{font-weight:600;font-size:14px;flex:1;}
+  .driver-row .driver-count{font-size:12px;color:var(--text-light);}
+  .driver-input-row{display:flex;gap:10px;margin-bottom:16px;}
+  .driver-input-row input{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:inherit;font-size:13px;outline:none;}
+  .driver-input-row input:focus{border-color:var(--gold);}
+  #map{width:100%;height:500px;border-radius:var(--radius);border:1px solid var(--border);}
+  .route-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px;}
+  .stat-card{background:var(--gold-pale);border-radius:var(--radius);padding:14px 16px;text-align:center;}
+  .stat-card .stat-value{font-size:24px;font-weight:700;color:var(--navy);}
+  .stat-card .stat-label{font-size:11px;color:var(--text-light);margin-top:2px;}
+  .tab-bar{display:flex;gap:4px;margin-bottom:-1px;position:relative;z-index:1;}
+  .tab{padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;border-radius:var(--radius) var(--radius) 0 0;border:1px solid transparent;background:transparent;color:var(--text-light);transition:all 0.2s;}
+  .tab.active{background:white;border-color:var(--border);border-bottom-color:white;color:var(--navy);font-weight:600;}
+  .color-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;border:2px solid white;box-shadow:0 0 0 1px rgba(0,0,0,0.15);display:inline-block;vertical-align:middle;}
+  .empty-state{text-align:center;padding:40px 20px;color:var(--text-light);}
+  .spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;}
+  .toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:white;padding:12px 20px;border-radius:var(--radius);font-size:13px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.2);transition:all 0.3s;opacity:0;transform:translateY(10px);}
+  .toast.show{opacity:1;transform:translateY(0);}
+  .tracking-section{margin-top:12px;padding:12px 16px;background:var(--cream);border-radius:var(--radius);font-size:13px;}
+  .tracking-section a{color:var(--gold);font-weight:600;word-break:break-all;}
   @keyframes spin{to{transform:rotate(360deg);}}
-  .church-card{padding:10px 14px;background:var(--green-bg);border-radius:var(--radius);font-size:13px;margin-bottom:8px;}
+  @media(max-width:768px){.container{padding:12px;}#map{height:350px;}.route-stats{grid-template-columns:1fr 1fr;}}
 </style>
 </head>
 <body>
 
+<!-- PASSWORD LOCK SCREEN -->
+<div id="lockScreen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy);">
+  <div style="background:white;border-radius:var(--radius);padding:40px;max-width:380px;width:90%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+    <div style="font-size:40px;margin-bottom:12px;">🔒</div>
+    <h2 style="font-size:18px;margin-bottom:4px;color:var(--navy);">Driver Dashboard</h2>
+    <p style="font-size:13px;color:var(--text-light);margin-bottom:24px;">Redeemers Church of Christ — Transportation</p>
+    <div style="position:relative;">
+      <input type="password" id="pinInput" placeholder="Enter password" maxlength="50"
+        style="width:100%;padding:14px 48px 14px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:inherit;font-size:15px;text-align:center;outline:none;margin-bottom:12px;"
+        onkeydown="if(event.key==='Enter')checkPin()"
+        autofocus>
+      <button type="button" onclick="togglePwdVisibility()" id="togglePwdBtn"
+        style="position:absolute;right:12px;top:14px;background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-light);padding:0;line-height:1;"
+        title="Show password">👁️</button>
+    </div>
+    <div id="pinError" style="font-size:12px;color:var(--red);margin-bottom:12px;display:none;">Incorrect password. Please try again.</div>
+    <button class="btn btn-primary" onclick="checkPin()" style="width:100%;justify-content:center;padding:14px;font-size:15px;">Unlock Dashboard</button>
+    <p style="font-size:11px;color:var(--text-light);margin-top:16px;">Contact the IT Division if you need the access PIN.</p>
+  </div>
+</div>
+
+<!-- MAIN DASHBOARD (hidden until PIN entered) -->
+<div id="mainDashboard" style="display:none;">
+
 <div class="header">
-  <h1>🚐 Your Pickup Route</h1>
-  <div class="sub">Redeemers Church of Christ — Transportation</div>
-  <div class="driver-badge" id="driverBadge">Loading...</div>
+  <div>
+    <h1>🚐 Driver Dashboard</h1>
+    <div class="subtitle">Redeemers Church of Christ — Transportation Department</div>
+  </div>
+  <div class="date-badge" id="sundayDate"></div>
 </div>
 
 <div class="container">
 
-  <div id="statusBar" class="status-bar status-off">Tap "Start Sharing Location" to begin</div>
-
-  <div class="panel">
-    <div class="panel-head">
-      <span>📍 Controls</span>
+  <!-- STEP 1: LOAD RIDES -->
+  <div class="panel" id="ridesPanel">
+    <div class="panel-header">
+      <h2>📋 Sunday Ride Requests</h2>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span id="rideCount" style="font-size:12px;color:var(--text-light);"></span>
+        <button class="btn btn-primary" id="loadRidesBtn" onclick="loadRides()">Load This Sunday's Rides</button>
+      </div>
     </div>
-    <div class="panel-body" style="display:flex;flex-direction:column;gap:10px;">
-      <button class="btn btn-green" id="shareBtn" onclick="toggleSharing()">📍 Start Sharing My Location</button>
-      <button class="btn btn-navy" id="enrouteBtn" onclick="notifyEnRoute()">🚗 Notify My Riders: En Route</button>
-      <button class="btn btn-gold" id="gmapsBtn" onclick="openGoogleMaps()">🗺️ Open Route in Google Maps</button>
-      <button class="btn btn-red" id="endBtn" onclick="endMySession()" style="display:none;">🏁 End My Session</button>
+    <div class="panel-body" id="ridesBody">
+      <div class="empty-state">
+        <p>Click <strong>"Load This Sunday's Rides"</strong> to fetch ride requests from ClickUp.</p>
+      </div>
     </div>
   </div>
 
-  <div id="map"></div>
+  <!-- STEP 2: DRIVERS -->
+  <div class="panel" id="driversPanel" style="display:none;">
+    <div class="panel-header"><h2>🧑‍✈️ Drivers</h2></div>
+    <div class="panel-body">
+      <div class="driver-input-row">
+        <input type="text" id="driverNameInput" placeholder="Enter driver name..." onkeydown="if(event.key==='Enter')addDriver()">
+        <button class="btn btn-navy" onclick="addDriver()">+ Add Driver</button>
+      </div>
+      <div id="driversList"></div>
+      <p style="font-size:12px;color:var(--text-light);margin-top:8px;">Add all drivers, then assign rides below.</p>
+    </div>
+  </div>
 
-  <div class="panel">
-    <div class="panel-head">
-      <span>📋 Your Stops</span>
-      <span id="progress" style="font-size:12px;color:var(--text-light);">0/0 picked up</span>
+  <!-- STEP 3: ASSIGN -->
+  <div class="panel" id="assignPanel" style="display:none;">
+    <div class="panel-header">
+      <h2>📍 Assign Rides to Drivers</h2>
+      <button class="btn btn-green" id="generateRouteBtn" onclick="generateRoutes()" disabled>Generate Routes & Notify Riders</button>
     </div>
     <div class="panel-body">
-      <div class="church-card"><strong>🏛️ Start:</strong> 10001 Aerospace Rd, Lanham, MD 20706</div>
-      <div id="stopsList"></div>
-      <div class="church-card" style="margin-top:8px;"><strong>🏛️ Return:</strong> 10001 Aerospace Rd, Lanham, MD 20706</div>
+      <p style="font-size:13px;color:var(--text-light);margin-bottom:16px;">Click a ride, then click a driver to assign.</p>
+      <div id="assignableRides"></div>
+    </div>
+  </div>
+
+  <!-- STEP 4: ROUTES & MAP -->
+  <div class="panel" id="routePanel" style="display:none;">
+    <div class="panel-header">
+      <h2>🗺️ Route Plan</h2>
+      <button class="btn btn-outline btn-sm" onclick="openAllInGoogleMaps()">Open in Google Maps</button>
+    </div>
+    <div class="panel-body">
+      <div class="route-stats" id="routeStats"></div>
+      <div class="tab-bar" id="routeTabs"></div>
+      <div id="map"></div>
+      <div id="routeDetails" style="margin-top:16px;"></div>
+    </div>
+  </div>
+
+  <!-- STEP 5: DRIVER LINKS -->
+  <div class="panel" id="trackingPanel" style="display:none;">
+    <div class="panel-header">
+      <h2>📱 Driver Links</h2>
+      <span style="font-size:12px;color:var(--text-light);">Send each driver their link</span>
+    </div>
+    <div class="panel-body">
+      <p style="font-size:13px;color:var(--text-light);margin-bottom:14px;">Each driver opens their link on their phone to see their route, share GPS, and mark pickups. Tap "Copy" or "Text" to send.</p>
+      <div id="driverLinksContainer"></div>
     </div>
   </div>
 
@@ -84,279 +175,644 @@
 
 <div class="toast" id="toast"></div>
 
+</div><!-- end mainDashboard -->
+
 <script>
-var PROXY = 'https://clickup-proxy.subscriptions-34a.workers.dev';
-var CHURCH = { address: '10001 Aerospace Rd, Lanham, MD 20706', lat: 38.9847, lng: -76.8545 };
+// ═════════════════════════════════════════════════════
+// PIN PROTECTION
+// ═════════════════════════════════════════════════════
+// The PIN is stored as a SHA-256 hash so it's not visible in source code.
+// Default PIN: "RCC2026" — change by updating the hash below.
+// To generate a new hash, run in browser console:
+//   crypto.subtle.digest('SHA-256', new TextEncoder().encode('YOUR_NEW_PIN')).then(b => console.log(Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2,'0')).join('')))
 
-// Parse URL params
-var params = new URLSearchParams(window.location.search);
-var sessionId = params.get('session') || '';
-var driverName = params.get('driver') || 'Driver';
-var driverColor = params.get('color') || '#B8962E';
-var stopsData = [];
+var PIN_HASH = '1a8dfb37bd160e058648cee3b48eeb75493d487d38411eed2d77bfab2fb8653b'; // SHA-256 of password
 
-try { stopsData = JSON.parse(decodeURIComponent(params.get('stops') || '[]')); } catch(e) {}
-
-document.getElementById('driverBadge').textContent = '🧑‍✈️ ' + driverName;
-document.getElementById('driverBadge').style.background = driverColor;
-document.title = driverName + ' — Route — RCC';
-
-var map, directionsRenderer;
-var watchId = null;
-var etaInterval = null;
-var pickedUp = {};
-
-// ── Toast ──
-function toast(msg) {
-  var t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(function() { t.classList.remove('show'); }, 3000);
-}
-
-// ── Init Map & Route ──
-function initMap() {
-  map = new google.maps.Map(document.getElementById('map'), {
-    center: { lat: CHURCH.lat, lng: CHURCH.lng }, zoom: 11,
-    styles: [{ featureType:'poi', stylers:[{visibility:'off'}] }],
-    disableDefaultUI: true, zoomControl: true,
-  });
-
-  if (stopsData.length === 0) {
-    document.getElementById('stopsList').innerHTML = '<p style="color:var(--text-light);font-size:13px;">No stops assigned. Check the link from your admin.</p>';
-    return;
+function togglePwdVisibility() {
+  var input = document.getElementById('pinInput');
+  var btn = document.getElementById('togglePwdBtn');
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = '🙈';
+    btn.title = 'Hide password';
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁️';
+    btn.title = 'Show password';
   }
-
-  // Build waypoints
-  var waypoints = stopsData.map(function(s) { return { location: s.address, stopover: true }; });
-
-  var ds = new google.maps.DirectionsService();
-  ds.route({
-    origin: CHURCH.address,
-    destination: CHURCH.address,
-    waypoints: waypoints,
-    optimizeWaypoints: true,
-    travelMode: google.maps.TravelMode.DRIVING,
-  }, function(result, status) {
-    if (status !== 'OK') {
-      document.getElementById('stopsList').innerHTML = '<p style="color:var(--red);">Could not generate route. Check addresses.</p>';
-      return;
-    }
-
-    directionsRenderer = new google.maps.DirectionsRenderer({
-      map: map, directions: result,
-      polylineOptions: { strokeColor: driverColor, strokeWeight: 4, strokeOpacity: 0.8 },
-    });
-
-    // Reorder stops by optimized order
-    var order = result.routes[0].waypoint_order;
-    var ordered = order.map(function(i) { return stopsData[i]; });
-    stopsData = ordered;
-    renderStops();
-  });
+  input.focus();
 }
 
-function renderStops() {
-  var html = '';
-  var pickedCount = 0;
-  stopsData.forEach(function(stop, i) {
-    var isPicked = !!pickedUp[stop.name];
-    if (isPicked) pickedCount++;
-    html += '<div class="stop-card' + (isPicked ? ' picked' : '') + '" id="stop-card-' + i + '">' +
-      '<div style="display:flex;align-items:center;">' +
-        '<div class="stop-num" style="background:' + driverColor + ';">' + (i + 1) + '</div>' +
-        '<div style="flex:1;">' +
-          '<div class="stop-name">' + stop.name + (isPicked ? ' ✅' : '') + '</div>' +
-          '<div class="stop-addr">' + stop.address + '</div>' +
-          '<div class="stop-meta">' + (stop.passengers || 1) + ' pax' +
-            (stop.phone ? ' · 📱 ' + stop.phone : '') +
-            (stop.mobility && stop.mobility !== 'None' && stop.mobility !== 'No special needs' ? ' · ⚠️ ' + stop.mobility : '') +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-      (isPicked ? '' :
-        '<div class="stop-actions">' +
-          '<button class="btn-sm btn btn-green" onclick="confirmPickup(' + i + ', this)" style="width:auto;">✅ Picked Up</button>' +
-          '<a href="tel:' + (stop.phone || '') + '" class="btn-sm btn btn-navy" style="width:auto;text-decoration:none;' + (stop.phone ? '' : 'display:none;') + '">📞 Call</a>' +
-        '</div>'
-      ) +
-    '</div>';
-  });
-  document.getElementById('stopsList').innerHTML = html;
-  document.getElementById('progress').textContent = pickedCount + '/' + stopsData.length + ' picked up';
+async function hashPin(pin) {
+  var encoded = new TextEncoder().encode(pin);
+  var buffer = await crypto.subtle.digest('SHA-256', encoded);
+  return Array.from(new Uint8Array(buffer)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+}
 
-  if (pickedCount === stopsData.length && stopsData.length > 0) {
-    document.getElementById('endBtn').style.display = '';
-    toast('🎉 All riders picked up! Head back to church.');
+async function checkPin() {
+  var input = document.getElementById('pinInput');
+  var pin = input.value.trim();
+  if (!pin) return;
+
+  var hash = await hashPin(pin);
+
+  if (hash === PIN_HASH) {
+    // Correct — save session so they don't have to re-enter on refresh
+    sessionStorage.setItem('rcc_driver_auth', 'true');
+    showDashboard();
+  } else {
+    document.getElementById('pinError').style.display = '';
+    input.value = '';
+    input.focus();
+    input.style.borderColor = 'var(--red)';
+    setTimeout(function() { input.style.borderColor = 'var(--border)'; }, 1500);
   }
 }
 
-// ── Picked Up ──
-async function confirmPickup(index, btn) {
-  var stop = stopsData[index];
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>';
-
-  // Mark as picked up on server
-  await fetch(PROXY + '/tracking/pickup-complete', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId: sessionId, riderName: stop.name }),
-  });
-
-  // Send "arrived" SMS
-  if (stop.phone) {
-    await fetch(PROXY + '/sms/notify-status', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        riders: [{ phone: stop.phone, name: stop.name }],
-        status: 'arrived',
-        driverName: driverName,
-      }),
-    });
-  }
-
-  pickedUp[stop.name] = true;
-  renderStops();
-  toast('✅ ' + stop.name + ' picked up!');
+function showDashboard() {
+  document.getElementById('lockScreen').style.display = 'none';
+  document.getElementById('mainDashboard').style.display = '';
 }
 
-// ── GPS Sharing ──
-function toggleSharing() {
-  var btn = document.getElementById('shareBtn');
-
-  if (watchId !== null) {
-    navigator.geolocation.clearWatch(watchId);
-    watchId = null;
-    if (etaInterval) clearInterval(etaInterval);
-    btn.className = 'btn btn-green';
-    btn.textContent = '📍 Start Sharing My Location';
-    document.getElementById('statusBar').className = 'status-bar status-off';
-    document.getElementById('statusBar').textContent = 'Location sharing stopped';
-    return;
-  }
-
-  if (!navigator.geolocation) { alert('Geolocation not supported.'); return; }
-
-  btn.className = 'btn btn-red';
-  btn.textContent = '⏹ Stop Sharing Location';
-
-  watchId = navigator.geolocation.watchPosition(
-    function(pos) {
-      var lat = pos.coords.latitude, lng = pos.coords.longitude;
-
-      // Send to server with THIS driver's name
-      fetch(PROXY + '/tracking/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: sessionId, lat: lat, lng: lng, driverName: driverName }),
-      });
-
-      document.getElementById('statusBar').className = 'status-bar status-live';
-      document.getElementById('statusBar').innerHTML = '📡 <strong>Sharing Live</strong> — ' + new Date().toLocaleTimeString();
-    },
-    function(err) {
-      document.getElementById('statusBar').className = 'status-bar';
-      document.getElementById('statusBar').style.background = '#FDE8E8';
-      document.getElementById('statusBar').style.color = 'var(--red)';
-      document.getElementById('statusBar').textContent = 'Location error: ' + err.message;
-    },
-    { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
-  );
-
-  // Check ETAs every 30 seconds
-  etaInterval = setInterval(checkETAs, 30000);
-}
-
-async function checkETAs() {
-  if (!stopsData.length) return;
-  try {
-    var pos = await new Promise(function(res, rej) {
-      navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true });
-    });
-
-    var etas = [];
-    var ds = new google.maps.DirectionsService();
-
-    for (var i = 0; i < stopsData.length; i++) {
-      var stop = stopsData[i];
-      if (!stop.phone || pickedUp[stop.name]) continue;
-
-      var result = await new Promise(function(resolve) {
-        ds.route({
-          origin: new google.maps.LatLng(pos.coords.latitude, pos.coords.longitude),
-          destination: stop.address,
-          travelMode: google.maps.TravelMode.DRIVING,
-        }, function(r, s) { resolve(s === 'OK' ? r : null); });
-      });
-
-      if (result) {
-        etas.push({
-          riderName: stop.name,
-          phone: stop.phone,
-          address: stop.address,
-          etaMinutes: Math.ceil(result.routes[0].legs[0].duration.value / 60),
-          driverName: driverName,
-        });
-      }
-    }
-
-    if (etas.length > 0) {
-      var res = await fetch(PROXY + '/tracking/check-eta', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: sessionId, driverLat: pos.coords.latitude, driverLng: pos.coords.longitude, etas: etas }),
-      });
-      var data = await res.json();
-      if (data.smsSent > 0) toast('📱 Tracking link sent to ' + data.smsSent + ' rider(s)');
-    }
-  } catch(e) { console.warn('ETA check error', e); }
-}
-
-// ── En Route SMS ──
-async function notifyEnRoute() {
-  var btn = document.getElementById('enrouteBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Sending...';
-
-  var batch = stopsData.filter(function(s) { return s.phone && !pickedUp[s.name]; })
-    .map(function(s) { return { phone: s.phone, name: s.name }; });
-
-  if (batch.length > 0) {
-    await fetch(PROXY + '/sms/notify-status', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ riders: batch, status: 'en_route', driverName: driverName }),
-    });
-  }
-
-  toast('📱 En Route SMS sent to ' + batch.length + ' rider(s)!');
-  btn.innerHTML = '✅ Riders Notified';
-}
-
-// ── Google Maps ──
-function openGoogleMaps() {
-  var stops = [CHURCH.address];
-  stopsData.forEach(function(s) { if (!pickedUp[s.name]) stops.push(s.address); });
-  stops.push(CHURCH.address);
-  window.open('https://www.google.com/maps/dir/' + stops.map(encodeURIComponent).join('/'), '_blank');
-}
-
-// ── End Session ──
-async function endMySession() {
-  if (!confirm('End your session? This stops sharing your location.')) return;
-  if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
-  if (etaInterval) clearInterval(etaInterval);
-
-  document.getElementById('shareBtn').disabled = true;
-  document.getElementById('endBtn').disabled = true;
-  document.getElementById('statusBar').className = 'status-bar status-off';
-  document.getElementById('statusBar').textContent = '🏁 Session ended. Safe travels!';
-  toast('🏁 Session ended.');
+// Check if already authenticated this session
+if (sessionStorage.getItem('rcc_driver_auth') === 'true') {
+  showDashboard();
 }
 </script>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD6aFSYheMeqE7NUs3zZolyxPojLQuTqg4&libraries=places,directions&callback=initMap"></script>
+<script>
+// ═════════════════════════════════════════════════════
+// CONFIG
+// ═════════════════════════════════════════════════════
+var CONFIG = {
+  PROXY: 'https://clickup-proxy.subscriptions-34a.workers.dev',
+  CHURCH_ADDRESS: '10001 Aerospace Rd, Lanham, MD 20706',
+  CHURCH_LAT: 38.9847,
+  CHURCH_LNG: -76.8545,
+};
+
+var DRIVER_COLORS = ['#E53935','#1E88E5','#43A047','#FB8C00','#8E24AA','#00ACC1','#D81B60','#6D4C41'];
+
+var rides = [];
+var drivers = [];
+var assignments = {};
+var selectedRideIndex = null;
+var map = null;
+var directionsRenderers = [];
+var trackingSessionId = null;
+var allRouteData = [];
+
+// ═════════════════════════════════════════════════════
+// DATE
+// ═════════════════════════════════════════════════════
+function getThisSunday() {
+  var now = new Date();
+  var day = now.getDay();
+  var sunday = new Date(now);
+  if (day !== 0) sunday.setDate(now.getDate() + (7 - day));
+  return sunday.toISOString().split('T')[0];
+}
+var sundayStr = getThisSunday();
+document.getElementById('sundayDate').textContent = new Date(sundayStr + 'T12:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+
+// ═════════════════════════════════════════════════════
+// HELPERS
+// ═════════════════════════════════════════════════════
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 3000);
+}
+
+async function apiFetch(path, opts) {
+  opts = opts || {};
+  var res = await fetch(CONFIG.PROXY + path, {
+    method: opts.method || 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  return res.json();
+}
+
+// ═════════════════════════════════════════════════════
+// STEP 1: LOAD RIDES
+// ═════════════════════════════════════════════════════
+async function loadRides() {
+  var btn = document.getElementById('loadRidesBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Loading...';
+
+  try {
+    var listId = localStorage.getItem('bookARide_listId');
+    if (!listId) {
+      document.getElementById('ridesBody').innerHTML = '<div class="empty-state"><p style="color:var(--red);">List ID not found. Open the Book a Ride form first to set up the workspace, then come back here.</p></div>';
+      return;
+    }
+
+    var sundayStart = new Date(sundayStr + 'T00:00:00').getTime();
+    var sundayEnd = new Date(sundayStr + 'T23:59:59').getTime();
+
+    var allTasks = [];
+    var page = 0;
+    var hasMore = true;
+    while (hasMore && page < 5) {
+      var data = await apiFetch('/list/' + listId + '/task?due_date_gt=' + sundayStart + '&due_date_lt=' + sundayEnd + '&include_closed=false&page=' + page);
+      var tasks = data.tasks || [];
+      allTasks = allTasks.concat(tasks);
+      hasMore = tasks.length === 100;
+      page++;
+    }
+
+    rides = allTasks.filter(function(t) {
+      var s = t.status && t.status.status ? t.status.status.toLowerCase() : '';
+      return s !== 'cancelled' && s !== 'completed';
+    });
+
+    if (rides.length === 0) {
+      document.getElementById('ridesBody').innerHTML = '<div class="empty-state"><p>No ride requests found for this Sunday.</p></div>';
+      return;
+    }
+
+    document.getElementById('rideCount').textContent = rides.length + ' ride' + (rides.length !== 1 ? 's' : '');
+    renderRidesList();
+    document.getElementById('driversPanel').style.display = '';
+    document.getElementById('assignPanel').style.display = '';
+    toast('✅ Loaded ' + rides.length + ' rides');
+  } catch (err) {
+    document.getElementById('ridesBody').innerHTML = '<div class="empty-state"><p style="color:var(--red);">Error: ' + err.message + '</p></div>';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Reload Rides';
+  }
+}
+
+function parseRide(task) {
+  var d = { name:'', address:'', phone:'', email:'', passengers:1, mobility:'None', taskId:task.id, taskUrl:task.url };
+  var m = task.name.match(/[🔄🚗]\s*(.+?)\s*[—–-]\s*/);
+  d.name = m ? m[1].trim() : task.name;
+  d.isRecurring = (task.tags || []).some(function(t) { return t.name === 'recurring'; });
+  d.status = task.status && task.status.status ? task.status.status : 'Unknown';
+
+  (task.custom_fields || []).forEach(function(f) {
+    var n = (f.name || '').toLowerCase();
+    var v = f.value || '';
+    if (n.indexOf('email') !== -1 && typeof v === 'string') d.email = v;
+    if (n.indexOf('phone') !== -1 && typeof v === 'string') d.phone = v;
+    if (n.indexOf('pickup') !== -1 && n.indexOf('address') !== -1 && typeof v === 'string') d.address = v;
+    if (n.indexOf('passenger') !== -1) d.passengers = parseInt(v) || 1;
+    if (n.indexOf('mobility') !== -1 && f.type_config && f.type_config.options) {
+      var opt = f.type_config.options[parseInt(v)];
+      if (opt) d.mobility = opt.name;
+    }
+  });
+
+  if (!d.address && task.description) {
+    var am = task.description.match(/Pickup Address:\*?\*?\s*(.+)/i);
+    if (am) d.address = am[1].trim();
+  }
+  if (!d.phone && task.description) {
+    var pm = task.description.match(/Phone:\*?\*?\s*(.+)/i);
+    if (pm) d.phone = pm[1].trim();
+  }
+  if (!d.email && task.description) {
+    var em = task.description.match(/Email:\*?\*?\s*(.+)/i);
+    if (em) d.email = em[1].trim();
+  }
+  return d;
+}
+
+function renderRidesList() {
+  var html = '';
+  rides.forEach(function(task, i) {
+    var d = parseRide(task);
+    html += '<div class="ride-card" id="ride-' + i + '">' +
+      '<div style="width:36px;height:36px;border-radius:50%;background:var(--gold-pale);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🧑</div>' +
+      '<div class="ride-info">' +
+        '<div class="ride-name">' + d.name + (d.isRecurring ? ' 🔄' : '') + '</div>' +
+        '<div class="ride-addr">' + (d.address || 'Address not found') + '</div>' +
+        '<div class="ride-meta">' + d.passengers + ' pax · ' + d.mobility + (d.phone ? ' · ' + d.phone : '') + '</div>' +
+      '</div>' +
+      '<span class="ride-badge badge-submitted">' + d.status + '</span>' +
+    '</div>';
+  });
+  document.getElementById('ridesBody').innerHTML = html;
+}
+
+// ═════════════════════════════════════════════════════
+// STEP 2: DRIVERS
+// ═════════════════════════════════════════════════════
+function addDriver() {
+  var input = document.getElementById('driverNameInput');
+  var name = input.value.trim();
+  if (!name) return;
+  drivers.push({ name:name, color:DRIVER_COLORS[drivers.length % DRIVER_COLORS.length] });
+  assignments[drivers.length - 1] = [];
+  input.value = '';
+  renderDrivers();
+  renderAssignableRides();
+}
+
+function removeDriver(idx) {
+  delete assignments[idx];
+  drivers.splice(idx, 1);
+  var newA = {};
+  var di = 0;
+  Object.keys(assignments).sort().forEach(function(k) { newA[di] = assignments[k]; di++; });
+  assignments = newA;
+  renderDrivers();
+  renderAssignableRides();
+}
+
+function renderDrivers() {
+  var html = '';
+  drivers.forEach(function(d, i) {
+    var count = (assignments[i] || []).length;
+    html += '<div class="driver-row">' +
+      '<span class="color-dot" style="background:' + d.color + ';"></span>' +
+      '<div class="driver-name">' + d.name + '</div>' +
+      '<div class="driver-count">' + count + ' ride' + (count !== 1 ? 's' : '') + '</div>' +
+      '<button class="btn btn-outline btn-sm" onclick="removeDriver(' + i + ')">✕</button>' +
+    '</div>';
+  });
+  document.getElementById('driversList').innerHTML = html || '<p style="font-size:13px;color:var(--text-light);">No drivers added yet.</p>';
+}
+
+// ═════════════════════════════════════════════════════
+// STEP 3: ASSIGN
+// ═════════════════════════════════════════════════════
+function selectRide(i) {
+  if (drivers.length === 0) { alert('Add at least one driver first.'); return; }
+  selectedRideIndex = (selectedRideIndex === i) ? null : i;
+  renderAssignableRides();
+}
+
+function assignRide(ri, di) {
+  for (var k in assignments) assignments[k] = assignments[k].filter(function(r) { return r !== ri; });
+  assignments[di] = assignments[di] || [];
+  assignments[di].push(ri);
+  selectedRideIndex = null;
+  renderDrivers();
+  renderAssignableRides();
+  checkAllAssigned();
+}
+
+function unassignRide(ri) {
+  for (var k in assignments) assignments[k] = assignments[k].filter(function(r) { return r !== ri; });
+  renderDrivers();
+  renderAssignableRides();
+  checkAllAssigned();
+}
+
+function getDriverFor(ri) {
+  for (var k in assignments) { if (assignments[k].indexOf(ri) !== -1) return parseInt(k); }
+  return -1;
+}
+
+function checkAllAssigned() {
+  var all = true;
+  for (var i = 0; i < rides.length; i++) { if (getDriverFor(i) === -1) { all = false; break; } }
+  document.getElementById('generateRouteBtn').disabled = !all || drivers.length === 0;
+}
+
+function renderAssignableRides() {
+  var html = '';
+  rides.forEach(function(task, i) {
+    var d = parseRide(task);
+    var di = getDriverFor(i);
+    var isA = di !== -1;
+    var col = isA ? drivers[di].color : '';
+    var dn = isA ? drivers[di].name : '';
+
+    html += '<div class="ride-card' + (isA ? ' assigned' : '') + (selectedRideIndex === i ? ' selected' : '') + '" ' +
+      'style="' + (isA ? 'border-left-color:' + col + ';' : '') + '" onclick="selectRide(' + i + ')">' +
+      (isA ? '<span class="color-dot" style="background:' + col + ';"></span>' : '') +
+      '<div class="ride-info">' +
+        '<div class="ride-name">' + d.name + '</div>' +
+        '<div class="ride-addr">' + (d.address || 'No address') + '</div>' +
+        (isA ? '<div class="ride-meta" style="color:' + col + ';font-weight:500;">→ ' + dn + ' <a href="#" onclick="event.stopPropagation();unassignRide(' + i + ')" style="color:var(--red);font-size:11px;">(remove)</a></div>' : '') +
+      '</div></div>';
+
+    if (selectedRideIndex === i) {
+      html += '<div style="display:flex;gap:8px;margin:-6px 0 10px 28px;flex-wrap:wrap;">';
+      drivers.forEach(function(dr, dri) {
+        html += '<button class="btn btn-sm" style="background:' + dr.color + ';color:white;" onclick="event.stopPropagation();assignRide(' + i + ',' + dri + ')">' + dr.name + '</button>';
+      });
+      html += '</div>';
+    }
+  });
+  document.getElementById('assignableRides').innerHTML = html;
+}
+
+// ═════════════════════════════════════════════════════
+// STEP 4: GENERATE ROUTES
+// ═════════════════════════════════════════════════════
+async function generateRoutes() {
+  var btn = document.getElementById('generateRouteBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Generating routes & sending SMS...';
+
+  document.getElementById('routePanel').style.display = '';
+  document.getElementById('trackingPanel').style.display = '';
+
+  if (!map) {
+    map = new google.maps.Map(document.getElementById('map'), {
+      center: { lat:CONFIG.CHURCH_LAT, lng:CONFIG.CHURCH_LNG },
+      zoom: 11,
+      styles: [{ featureType:'poi', stylers:[{visibility:'off'}] }],
+    });
+  }
+
+  directionsRenderers.forEach(function(r) { r.setMap(null); });
+  directionsRenderers = [];
+  allRouteData = [];
+
+  // Generate session ID for tracking
+  trackingSessionId = 'rcc_' + sundayStr.replace(/-/g, '') + '_' + Math.random().toString(36).substr(2, 6);
+  // Store for Command Center to find
+  localStorage.setItem('rcc_active_session', trackingSessionId);
+
+  var directionsService = new google.maps.DirectionsService();
+  var statsHtml = '';
+  var tabsHtml = '';
+  var detailsHtml = '';
+  var allRiderInfo = []; // For creating tracking session
+
+  for (var di = 0; di < drivers.length; di++) {
+    var driverRides = assignments[di] || [];
+    if (driverRides.length === 0) continue;
+    var driver = drivers[di];
+    var waypoints = [];
+    var stopDetails = [];
+
+    for (var ri = 0; ri < driverRides.length; ri++) {
+      var rd = parseRide(rides[driverRides[ri]]);
+      if (rd.address) {
+        waypoints.push({ location: rd.address, stopover: true });
+        stopDetails.push(rd);
+      }
+    }
+    if (waypoints.length === 0) continue;
+
+    var routeResult = await new Promise(function(resolve) {
+      directionsService.route({
+        origin: CONFIG.CHURCH_ADDRESS,
+        destination: CONFIG.CHURCH_ADDRESS,
+        waypoints: waypoints,
+        optimizeWaypoints: true,
+        travelMode: google.maps.TravelMode.DRIVING,
+      }, function(result, status) { resolve(status === 'OK' ? result : null); });
+    });
+
+    if (!routeResult) {
+      detailsHtml += '<p style="color:var(--red);">Could not generate route for ' + driver.name + '</p>';
+      continue;
+    }
+
+    var renderer = new google.maps.DirectionsRenderer({
+      map: map, directions: routeResult,
+      polylineOptions: { strokeColor: driver.color, strokeWeight: 4, strokeOpacity: 0.8 },
+      suppressMarkers: false,
+    });
+    directionsRenderers.push(renderer);
+
+    var route = routeResult.routes[0];
+    var totalDist = 0, totalTime = 0;
+    route.legs.forEach(function(leg) { totalDist += leg.distance.value; totalTime += leg.duration.value; });
+
+    var orderedStops = route.waypoint_order.map(function(idx) { return stopDetails[idx]; });
+
+    var routeDataItem = {
+      driver: driver, driverIndex: di, route: routeResult,
+      stops: orderedStops,
+      totalMiles: (totalDist / 1609.34).toFixed(1),
+      totalMinutes: Math.ceil(totalTime / 60),
+    };
+    allRouteData.push(routeDataItem);
+
+    // Collect rider info for tracking session
+    orderedStops.forEach(function(s) {
+      allRiderInfo.push({ name: s.name, phone: s.phone, address: s.address, taskId: s.taskId, driverName: driver.name });
+    });
+
+    statsHtml += '<div class="stat-card">' +
+      '<span class="color-dot" style="background:' + driver.color + ';margin-bottom:6px;"></span>' +
+      '<div class="stat-value">' + orderedStops.length + '</div>' +
+      '<div class="stat-label">' + driver.name + '</div>' +
+      '<div style="font-size:11px;color:var(--text-light);margin-top:4px;">' + routeDataItem.totalMiles + ' mi · ' + routeDataItem.totalMinutes + ' min</div>' +
+    '</div>';
+
+    tabsHtml += '<div class="tab' + (allRouteData.length === 1 ? ' active' : '') + '" onclick="showDriverRoute(' + (allRouteData.length - 1) + ')" data-idx="' + (allRouteData.length - 1) + '">' +
+      '<span class="color-dot" style="background:' + driver.color + ';width:10px;height:10px;margin-right:4px;"></span>' + driver.name + '</div>';
+
+    detailsHtml += '<div class="driver-route-detail" data-idx="' + (allRouteData.length - 1) + '" style="' + (allRouteData.length > 1 ? 'display:none;' : '') + '">';
+    detailsHtml += '<div style="padding:10px 14px;background:var(--green-bg);border-radius:var(--radius);font-size:13px;margin-bottom:8px;"><strong>🏛️ Start:</strong> ' + CONFIG.CHURCH_ADDRESS + '</div>';
+
+    orderedStops.forEach(function(stop, si) {
+      detailsHtml += '<div style="padding:10px 14px;border-left:3px solid ' + driver.color + ';margin-left:6px;margin-bottom:6px;background:white;border-radius:0 var(--radius) var(--radius) 0;">' +
+        '<div style="font-weight:600;font-size:13px;">Stop ' + (si + 1) + ': ' + stop.name + '</div>' +
+        '<div style="font-size:12px;color:var(--text-light);">' + stop.address + '</div>' +
+        '<div style="font-size:11px;color:var(--text-light);margin-top:2px;">' + stop.passengers + ' pax' +
+        (stop.mobility !== 'No special needs' && stop.mobility !== 'None' ? ' · ⚠️ ' + stop.mobility : '') +
+        (stop.phone ? ' · 📱 ' + stop.phone : '') + '</div>' +
+      '</div>';
+    });
+
+    detailsHtml += '<div style="padding:10px 14px;background:var(--green-bg);border-radius:var(--radius);font-size:13px;margin-top:8px;"><strong>🏛️ Return:</strong> ' + CONFIG.CHURCH_ADDRESS + '</div>';
+    detailsHtml += '</div>';
+  }
+
+  var totalRides = rides.length;
+  statsHtml = '<div class="stat-card"><div class="stat-value">' + totalRides + '</div><div class="stat-label">Total Pickups</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + drivers.length + '</div><div class="stat-label">Drivers</div></div>' + statsHtml;
+
+  document.getElementById('routeStats').innerHTML = statsHtml;
+  document.getElementById('routeTabs').innerHTML = tabsHtml;
+  document.getElementById('routeDetails').innerHTML = detailsHtml;
+
+  // Build driver info for command center
+  var driverInfo = allRouteData.map(function(rd) {
+    return {
+      name: rd.driver.name,
+      color: rd.driver.color,
+      stopCount: rd.stops.length,
+      totalMiles: rd.totalMiles,
+      totalMinutes: rd.totalMinutes,
+      stops: rd.stops.map(function(s) { return { name: s.name, address: s.address }; }),
+    };
+  });
+
+  // Create tracking session on server (includes driver info for command center)
+  await apiFetch('/tracking/session', {
+    method: 'POST',
+    body: { sessionId: trackingSessionId, riders: allRiderInfo, drivers: driverInfo },
+  });
+
+  // Update ClickUp + Send "Driver Assigned" SMS
+  await updateClickUpAndNotify(allRouteData);
+
+  // Generate driver links
+  generateDriverLinks();
+
+  btn.innerHTML = '✅ Routes Generated & Riders Notified';
+  toast('✅ Routes generated! Send driver links below.');
+  document.getElementById('trackingPanel').scrollIntoView({ behavior: 'smooth' });
+}
+
+function buildDriverLink(routeData) {
+  var base = window.location.href.replace('driver.html', 'drive.html');
+  var stopsParam = routeData.stops.map(function(s) {
+    return { name: s.name, address: s.address, phone: s.phone || '', passengers: s.passengers || 1, mobility: s.mobility || 'None', taskId: s.taskId || '' };
+  });
+  return base + '?session=' + encodeURIComponent(trackingSessionId) +
+    '&driver=' + encodeURIComponent(routeData.driver.name) +
+    '&color=' + encodeURIComponent(routeData.driver.color) +
+    '&stops=' + encodeURIComponent(JSON.stringify(stopsParam));
+}
+
+function generateDriverLinks() {
+  var html = '';
+  allRouteData.forEach(function(rd, i) {
+    var link = buildDriverLink(rd);
+    var msgText = 'RCC Transportation — ' + rd.driver.name + ', here is your pickup route for this Sunday (' + rd.stops.length + ' stops, ' + rd.totalMiles + ' mi):\n\n' + link;
+    var whatsappLink = 'https://wa.me/?text=' + encodeURIComponent(msgText);
+    var smsLink = 'sms:?&body=' + encodeURIComponent(msgText);
+
+    // List stop names for preview
+    var stopNames = rd.stops.map(function(s, si) { return (si + 1) + '. ' + s.name; }).join('\n');
+
+    html += '<div style="padding:16px;border:1.5px solid var(--border);border-left:4px solid ' + rd.driver.color + ';border-radius:var(--radius);margin-bottom:14px;background:white;">' +
+
+      // Driver header
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">' +
+        '<span class="color-dot" style="background:' + rd.driver.color + ';"></span>' +
+        '<strong style="font-size:15px;">' + rd.driver.name + '</strong>' +
+        '<span style="font-size:12px;color:var(--text-light);margin-left:auto;">' + rd.stops.length + ' stops · ' + rd.totalMiles + ' mi · ~' + rd.totalMinutes + ' min</span>' +
+      '</div>' +
+
+      // Stop preview
+      '<div style="background:var(--cream);padding:10px 12px;border-radius:8px;margin-bottom:12px;font-size:12px;color:var(--text-mid);white-space:pre-line;line-height:1.6;">' + stopNames + '</div>' +
+
+      // Action buttons - large and clear
+      '<div style="display:flex;flex-direction:column;gap:8px;">' +
+        '<div style="display:flex;gap:8px;">' +
+          '<button class="btn btn-primary" onclick="copyDriverLink(' + i + ')" style="flex:1;padding:12px;">📋 Copy Link</button>' +
+          '<button class="btn btn-navy" onclick="shareDriverLink(' + i + ', \'' + rd.driver.name.replace(/'/g, "\\'") + '\')" style="flex:1;padding:12px;">📤 Share</button>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;">' +
+          '<a href="' + whatsappLink + '" target="_blank" class="btn btn-green" style="flex:1;padding:12px;text-decoration:none;text-align:center;">💬 WhatsApp</a>' +
+          '<a href="' + smsLink + '" class="btn btn-outline" style="flex:1;padding:12px;text-decoration:none;text-align:center;">📱 Text Message</a>' +
+        '</div>' +
+        '<a href="' + link + '" target="_blank" style="display:block;text-align:center;font-size:12px;color:var(--gold);margin-top:4px;">🔗 Preview driver\'s page</a>' +
+      '</div>' +
+
+      '<input type="hidden" id="driver-link-' + i + '" value="' + link.replace(/"/g, '&quot;') + '">' +
+    '</div>';
+  });
+  document.getElementById('driverLinksContainer').innerHTML = html;
+}
+
+function copyDriverLink(index) {
+  var link = document.getElementById('driver-link-' + index).value;
+  navigator.clipboard.writeText(link).then(function() { toast('📋 Link copied! Paste it to your driver.'); });
+}
+
+function shareDriverLink(index, driverName) {
+  var link = document.getElementById('driver-link-' + index).value;
+  var text = 'RCC Transportation — ' + driverName + ', here is your Sunday pickup route:';
+
+  if (navigator.share) {
+    navigator.share({ title: 'Pickup Route — ' + driverName, text: text, url: link })
+      .catch(function() { /* user cancelled */ });
+  } else {
+    // Fallback: copy to clipboard
+    navigator.clipboard.writeText(text + '\n' + link).then(function() {
+      toast('📋 Copied! Share button not supported — link copied instead.');
+    });
+  }
+}
+
+function buildTrackUrl(stop, driver) {
+  var base = window.location.href.replace('driver.html', 'track.html');
+  return base + '?session=' + trackingSessionId +
+    '&driver=' + encodeURIComponent(driver.name) +
+    '&dest=' + encodeURIComponent(stop.address) +
+    '&name=' + encodeURIComponent(stop.name);
+}
+
+function showDriverRoute(idx) {
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.toggle('active', t.getAttribute('data-idx') == idx); });
+  document.querySelectorAll('.driver-route-detail').forEach(function(d) { d.style.display = d.getAttribute('data-idx') == idx ? '' : 'none'; });
+  if (directionsRenderers[idx]) {
+    map.fitBounds(directionsRenderers[idx].getDirections().routes[0].bounds);
+  }
+}
+
+function openAllInGoogleMaps() {
+  allRouteData.forEach(function(rd) {
+    var stops = [CONFIG.CHURCH_ADDRESS];
+    rd.stops.forEach(function(s) { stops.push(s.address); });
+    stops.push(CONFIG.CHURCH_ADDRESS);
+    window.open('https://www.google.com/maps/dir/' + stops.map(encodeURIComponent).join('/'), '_blank');
+  });
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(function() { toast('📋 Link copied!'); });
+}
+
+// ═════════════════════════════════════════════════════
+// CLICKUP + SMS NOTIFICATIONS
+// ═════════════════════════════════════════════════════
+async function updateClickUpAndNotify(routeData) {
+  var ridersToNotify = [];
+
+  for (var ri = 0; ri < routeData.length; ri++) {
+    var rd = routeData[ri];
+    for (var si = 0; si < rd.stops.length; si++) {
+      var stop = rd.stops[si];
+      if (!stop.taskId) continue;
+
+      // Update ClickUp task
+      try {
+        await apiFetch('/task/' + stop.taskId, {
+          method: 'PUT',
+          body: { status: 'Driver Assigned' },
+        });
+        await apiFetch('/task/' + stop.taskId + '/comment', {
+          method: 'POST',
+          body: {
+            comment_text: '🚐 Driver: ' + rd.driver.name + ' | Stop ' + (si + 1) + '/' + rd.stops.length + ' | Route: ' + rd.totalMiles + ' mi, ~' + rd.totalMinutes + ' min',
+            notify_all: false,
+          },
+        });
+      } catch (e) { console.warn('ClickUp update failed', e); }
+
+      if (stop.phone) {
+        ridersToNotify.push({ phone: stop.phone, name: stop.name });
+      }
+    }
+  }
+
+  // Send "Driver Assigned" SMS to all riders
+  if (ridersToNotify.length > 0) {
+    for (var ri2 = 0; ri2 < routeData.length; ri2++) {
+      var rd2 = routeData[ri2];
+      var riderBatch = rd2.stops.filter(function(s) { return s.phone; }).map(function(s) { return { phone: s.phone, name: s.name }; });
+      if (riderBatch.length > 0) {
+        await apiFetch('/sms/notify-status', {
+          method: 'POST',
+          body: { riders: riderBatch, status: 'driver_assigned', driverName: rd2.driver.name },
+        });
+      }
+    }
+  }
+}
+
+}
+</script>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD6aFSYheMeqE7NUs3zZolyxPojLQuTqg4&libraries=places,directions&callback=Function.prototype"></script>
 
 </body>
 </html>
