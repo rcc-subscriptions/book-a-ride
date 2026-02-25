@@ -714,46 +714,42 @@ async function generateRoutes() {
   document.getElementById('routeTabs').innerHTML = tabsHtml;
   document.getElementById('routeDetails').innerHTML = detailsHtml;
 
-  // Generate driver links FIRST (so admin always sees them even if server calls are slow/fail)
+  // Show driver links immediately
   try {
     generateDriverLinks();
   } catch (linkErr) {
-    console.error('Driver link generation failed:', linkErr);
+    console.error('Link generation failed:', linkErr);
     document.getElementById('driverLinksContainer').innerHTML =
-      '<div style="padding:14px;color:var(--red);background:#fde8e8;border-radius:var(--radius);">' +
-      '<strong>Error generating driver links:</strong> ' + linkErr.message + '</div>';
+      '<div style="padding:14px;color:var(--red);background:#fde8e8;border-radius:10px;">' +
+      '<strong>Error:</strong> ' + linkErr.message + '</div>';
   }
   document.getElementById('trackingPanel').style.display = '';
+  btn.disabled = false;
   btn.innerHTML = '✅ Routes Generated! Send links below ↓';
   document.getElementById('trackingPanel').scrollIntoView({ behavior: 'smooth' });
 
-  // Now do server-side updates in background (non-blocking)
+  // Fire-and-forget server updates (don't block the page)
+  doServerUpdates(allRiderInfo);
+}
+
+async function doServerUpdates(allRiderInfo) {
   try {
-    // Build driver info for command center
     var driverInfo = allRouteData.map(function(rd) {
       return {
-        name: rd.driver.name,
-        color: rd.driver.color,
-        stopCount: rd.stops.length,
-        totalMiles: rd.totalMiles,
-        totalMinutes: rd.totalMinutes,
+        name: rd.driver.name, color: rd.driver.color,
+        stopCount: rd.stops.length, totalMiles: rd.totalMiles, totalMinutes: rd.totalMinutes,
         stops: rd.stops.map(function(s) { return { name: s.name, address: s.address }; }),
       };
     });
-
-    // Create tracking session on server (includes driver info for command center)
     await apiFetch('/tracking/session', {
       method: 'POST',
       body: { sessionId: trackingSessionId, riders: allRiderInfo, drivers: driverInfo },
     });
-
-    // Update ClickUp + Send "Driver Assigned" SMS
     await updateClickUpAndNotify(allRouteData);
-
-    toast('✅ Riders notified via SMS! Now send driver links.');
+    toast('✅ Riders notified! Now send driver links.');
   } catch (err) {
-    console.warn('Server updates failed (links still work):', err);
-    toast('⚠️ Routes ready! SMS/ClickUp may have failed — check server.');
+    console.warn('Server updates failed:', err);
+    toast('⚠️ Routes ready! Server sync may have failed.');
   }
 }
 
@@ -820,14 +816,6 @@ function copyLink(index) {
       prompt('Copy this link:', input.value);
     });
   }
-}
-
-function buildTrackUrl(stop, driver) {
-  var base = window.location.href.replace('driver.html', 'track.html');
-  return base + '?session=' + trackingSessionId +
-    '&driver=' + encodeURIComponent(driver.name) +
-    '&dest=' + encodeURIComponent(stop.address) +
-    '&name=' + encodeURIComponent(stop.name);
 }
 
 function showDriverRoute(idx) {
